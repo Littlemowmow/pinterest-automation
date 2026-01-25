@@ -4,7 +4,7 @@ import './globals.css';
 import Sidebar from '@/components/layout/Sidebar';
 
 export const metadata: Metadata = {
-  title: 'Pin Scheduler - Pinterest Automation',
+  title: 'AutoPin - Pinterest Automation',
   description: 'Automated Pinterest posting from Google Drive',
 };
 

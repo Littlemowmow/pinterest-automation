@@ -24,7 +24,7 @@ export default function Sidebar() {
             <Pin className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-semibold text-foreground">Pin Scheduler</h1>
+            <h1 className="font-semibold text-foreground">AutoPin</h1>
             <p className="text-xs text-muted-foreground">@byyhafsa</p>
           </div>
         </div>
