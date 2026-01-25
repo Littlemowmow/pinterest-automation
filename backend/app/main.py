@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.routers import photos, tags, settings as settings_router, queue
+from app.routers import photos, tags, settings as settings_router, queue, auth
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(photos.router)
 app.include_router(tags.router)
 app.include_router(settings_router.router)

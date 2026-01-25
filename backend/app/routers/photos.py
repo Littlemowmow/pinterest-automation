@@ -94,12 +94,11 @@ async def update_photo_status(
 async def sync_photos(
     supabase: Client = Depends(get_supabase),
 ):
-    """
-    Sync photos from Google Drive.
-    This is a placeholder - actual implementation requires Google Drive OAuth.
-    """
+    """Sync photos from Google Drive."""
+    from app.services.google_drive import sync_photos_from_drive
+
     # Check if Google Drive is connected
-    settings = (
+    settings_result = (
         supabase.table("settings")
         .select("google_access_token, drive_folder_id")
         .eq("id", "00000000-0000-0000-0000-000000000001")
@@ -107,21 +106,26 @@ async def sync_photos(
         .execute()
     )
 
-    if not settings.data.get("google_access_token"):
+    if not settings_result.data.get("google_access_token"):
         raise HTTPException(
             status_code=400,
             detail="Google Drive not connected. Please connect in Settings.",
         )
 
-    if not settings.data.get("drive_folder_id"):
+    folder_id = settings_result.data.get("drive_folder_id")
+    if not folder_id:
         raise HTTPException(
             status_code=400,
-            detail="Google Drive folder not configured. Please set in Settings.",
+            detail="Google Drive folder not configured. Please set folder ID in Settings.",
         )
 
-    # TODO: Implement actual Google Drive sync
-    # For now, return empty result
-    return PhotoSyncResponse(synced_count=0, new_photos=[])
+    # Sync photos from Drive
+    result = await sync_photos_from_drive(supabase, folder_id)
+
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return PhotoSyncResponse(synced_count=result["synced"], new_photos=[])
 
 
 @router.get("/stats/summary")
