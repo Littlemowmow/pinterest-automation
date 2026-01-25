@@ -1,10 +1,40 @@
 'use client';
 
 import { useState } from 'react';
+import { HardDrive, Clock, FolderOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { ConnectionStatus } from '@/components/settings/ConnectionStatus';
+import { BoardMappingsTable } from '@/components/settings/BoardMappingsTable';
 import { useSettings, useBoardMappings } from '@/hooks/useSettings';
-import { formatTime } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+const INTERVALS = [
+  { value: '6', label: 'Every 6 hours' },
+  { value: '12', label: 'Every 12 hours' },
+  { value: '24', label: 'Every 24 hours (1/day)' },
+  { value: '48', label: 'Every 2 days' },
+  { value: '168', label: 'Every 7 days (1/week)' },
+];
+
+// Pinterest Pin icon component
+function PinIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+    </svg>
+  );
+}
 
 export default function SettingsPage() {
   const { settings, update: updateSettings, isLoading } = useSettings();
@@ -19,209 +49,141 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  const handleIntervalChange = async (hours: number) => {
-    await updateSettings({ posting_interval_hours: hours });
+  const handleIntervalChange = async (hours: string) => {
+    await updateSettings({ posting_interval_hours: parseInt(hours) });
   };
 
   const handleTimeChange = async (time: string) => {
     await updateSettings({ default_post_time: time + ':00' });
   };
 
+  const handleConnectGoogle = () => {
+    window.location.href = `${API_URL}/auth/google/authorize`;
+  };
+
+  const handleConnectPinterest = () => {
+    window.location.href = `${API_URL}/auth/pinterest/authorize`;
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading settings...</p>
+      <div className="space-y-6 max-w-2xl">
+        <div className="h-16 skeleton rounded-xl" />
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-40 skeleton rounded-xl" />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+    <div className="space-y-8 max-w-2xl">
+      {/* Header */}
+      <div>
+        <h1 className="text-display text-foreground">Settings</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your connections and posting preferences
+        </p>
+      </div>
 
-      {/* Google Drive */}
-      <section className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Google Drive</h2>
-
-        <div className="flex items-center gap-2 mb-4">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              settings?.google_connected ? 'bg-green-500' : 'bg-red-500'
-            }`}
+      {/* Connections */}
+      <SectionCard title="Connections" description="Connect your accounts to enable automation">
+        <div className="space-y-4">
+          <ConnectionStatus
+            service="Google Drive"
+            icon={<HardDrive className="w-6 h-6 text-blue-500" />}
+            isConnected={settings?.google_connected || false}
+            onConnect={handleConnectGoogle}
           />
-          <span className="text-sm">
-            {settings?.google_connected ? 'Connected' : 'Not connected'}
-          </span>
-        </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Folder ID</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
+          <ConnectionStatus
+            service="Pinterest"
+            icon={<PinIcon className="w-6 h-6 text-primary" />}
+            isConnected={settings?.pinterest_connected || false}
+            username={settings?.pinterest_connected ? '@byyhafsa' : undefined}
+            onConnect={handleConnectPinterest}
+          />
+        </div>
+      </SectionCard>
+
+      {/* Google Drive Folder */}
+      <SectionCard title="Google Drive Folder" description="Set the folder to sync photos from">
+        <div className="space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Input
                 value={folderId || settings?.drive_folder_id || ''}
                 onChange={(e) => setFolderId(e.target.value)}
                 placeholder="Enter Google Drive folder ID"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
-              <button
-                onClick={handleSaveFolderId}
-                disabled={saving}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Find this in the URL when viewing your Drive folder
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Find this in the URL when viewing your Drive folder
-            </p>
-          </div>
-
-          <button
-            onClick={() => window.location.href = `${API_URL}/auth/google/authorize`}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
-          >
-            {settings?.google_connected ? 'Reconnect' : 'Connect'} Google Drive
-          </button>
-        </div>
-      </section>
-
-      {/* Pinterest */}
-      <section className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Pinterest Account</h2>
-
-        <div className="flex items-center gap-2 mb-4">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              settings?.pinterest_connected ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          />
-          <span className="text-sm">
-            {settings?.pinterest_connected ? 'Connected as @byyhafsa' : 'Not connected'}
-          </span>
-        </div>
-
-        <button
-          onClick={() => window.location.href = `${API_URL}/auth/pinterest/authorize`}
-          className="px-4 py-2 bg-pinterest-red text-white rounded-lg text-sm font-medium hover:bg-red-700"
-        >
-          {settings?.pinterest_connected ? 'Reconnect' : 'Connect'} Pinterest
-        </button>
-      </section>
-
-      {/* Posting Frequency */}
-      <section className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Posting Frequency</h2>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Post every</label>
-            <select
-              value={settings?.posting_interval_hours || 24}
-              onChange={(e) => handleIntervalChange(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            <Button
+              onClick={handleSaveFolderId}
+              disabled={saving}
             >
-              <option value={6}>6 hours</option>
-              <option value={12}>12 hours</option>
-              <option value={24}>24 hours (1/day)</option>
-              <option value={48}>48 hours</option>
-              <option value={168}>7 days (1/week)</option>
-            </select>
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
           </div>
 
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Default time</label>
-            <input
+          {settings?.drive_folder_id && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50">
+              <FolderOpen className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Current: {settings.drive_folder_id}
+              </span>
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* Posting Schedule */}
+      <SectionCard title="Posting Schedule" description="Configure when and how often pins are posted">
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Posting Interval</Label>
+            <Select
+              value={settings?.posting_interval_hours?.toString() || '24'}
+              onValueChange={handleIntervalChange}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INTERVALS.map((interval) => (
+                  <SelectItem key={interval.value} value={interval.value}>
+                    {interval.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Default Post Time</Label>
+            <Input
               type="time"
               value={settings?.default_post_time?.slice(0, 5) || '10:00'}
               onChange={(e) => handleTimeChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
         </div>
-      </section>
+
+        <div className="flex items-center gap-2 mt-4 p-3 rounded-lg bg-secondary/50">
+          <Clock className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Pins will be posted {INTERVALS.find(i => i.value === settings?.posting_interval_hours?.toString())?.label.toLowerCase() || 'every 24 hours'} starting at {settings?.default_post_time?.slice(0, 5) || '10:00'}
+          </span>
+        </div>
+      </SectionCard>
 
       {/* Board Mappings */}
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Board Mappings</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Configure which Pinterest board each category maps to, and optional links
-        </p>
-
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-2 font-medium text-gray-700">Category</th>
-              <th className="text-left py-2 font-medium text-gray-700">Board</th>
-              <th className="text-left py-2 font-medium text-gray-700">Link URL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mappings?.map((mapping) => (
-              <BoardMappingRow key={mapping.id} mapping={mapping} onUpdate={updateMapping} />
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <BoardMappingsTable
+        mappings={mappings || []}
+        onUpdate={updateMapping}
+      />
     </div>
-  );
-}
-
-function BoardMappingRow({
-  mapping,
-  onUpdate,
-}: {
-  mapping: { id: string; category: string; board_name: string; link_url?: string };
-  onUpdate: (category: string, data: { link_url?: string }) => void;
-}) {
-  const [linkUrl, setLinkUrl] = useState(mapping.link_url || '');
-  const [editing, setEditing] = useState(false);
-
-  const handleSave = async () => {
-    await onUpdate(mapping.category, { link_url: linkUrl || undefined });
-    setEditing(false);
-  };
-
-  return (
-    <tr className="border-b border-gray-100">
-      <td className="py-2 text-gray-900">{mapping.category}</td>
-      <td className="py-2 text-gray-600">{mapping.board_name}</td>
-      <td className="py-2">
-        {editing ? (
-          <div className="flex gap-1">
-            <input
-              type="text"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
-              placeholder="https://..."
-            />
-            <button
-              onClick={handleSave}
-              className="px-2 py-1 bg-gray-900 text-white rounded text-xs"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="px-2 py-1 bg-gray-200 rounded text-xs"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">{mapping.link_url || '—'}</span>
-            <button
-              onClick={() => setEditing(true)}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Edit
-            </button>
-          </div>
-        )}
-      </td>
-    </tr>
   );
 }

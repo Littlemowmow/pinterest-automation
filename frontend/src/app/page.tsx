@@ -1,142 +1,241 @@
 'use client';
 
 import { useState } from 'react';
+import { RefreshCw, Image, Clock, CheckCircle, Send, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { NextPinPreview } from '@/components/dashboard/NextPinPreview';
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { usePhotoStats, useSyncPhotos } from '@/hooks/usePhotos';
 import { useSettings } from '@/hooks/useSettings';
 import { useQueue } from '@/hooks/useQueue';
-import { formatDate, formatTime } from '@/lib/utils';
+import type { QueueItem } from '@/lib/types';
+
+const INTERVALS = [
+  { value: '6', label: 'Every 6 hours' },
+  { value: '12', label: 'Every 12 hours' },
+  { value: '24', label: 'Every 24 hours' },
+  { value: '48', label: 'Every 2 days' },
+  { value: '168', label: 'Every 7 days' },
+];
+
+// Mock activity data for now
+const mockActivities = [
+  { id: '1', type: 'posted' as const, message: 'Pin posted to Henna board', timestamp: '2 hours ago' },
+  { id: '2', type: 'approved' as const, message: '5 photos approved for posting', timestamp: '4 hours ago' },
+  { id: '3', type: 'synced' as const, message: '12 new photos synced from Drive', timestamp: 'Yesterday' },
+  { id: '4', type: 'posted' as const, message: 'Pin posted to Bridal board', timestamp: '2 days ago' },
+];
 
 export default function Dashboard() {
   const { stats, isLoading: statsLoading, mutate: mutateStats } = usePhotoStats();
   const { settings, update: updateSettings } = useSettings();
-  const { nextPost, total: queueTotal } = useQueue();
+  const { queue, nextPost, total: queueTotal } = useQueue();
   const { sync } = useSyncPhotos();
+
   const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [tempInterval, setTempInterval] = useState(settings?.posting_interval_hours?.toString() || '12');
+  const [tempTime, setTempTime] = useState(settings?.default_post_time?.slice(0, 5) || '09:00');
+
+  // Convert first queue item to QueueItem format for NextPinPreview
+  const nextQueueItem: QueueItem | null = queue?.[0] ? {
+    id: queue[0].id,
+    photo_id: queue[0].photo_id,
+    board_id: queue[0].board_id,
+    link_url: queue[0].link_url,
+    title: queue[0].title,
+    file_name: queue[0].photo_file_name,
+    thumbnail_url: queue[0].photo_thumbnail_url,
+    position: queue[0].position,
+    scheduled_at: queue[0].scheduled_for || new Date().toISOString(),
+    status: 'pending',
+  } : null;
 
   const handleSync = async () => {
     setSyncing(true);
-    setSyncMessage('');
     try {
-      const result = await sync();
-      setSyncMessage(`Synced ${result.synced_count} new photos`);
+      await sync();
       mutateStats();
-    } catch (error: any) {
-      setSyncMessage(error.message || 'Sync failed');
+    } catch (error) {
+      console.error('Sync failed:', error);
     } finally {
       setSyncing(false);
     }
   };
 
-  const handleIntervalChange = async (hours: number) => {
-    await updateSettings({ posting_interval_hours: hours });
+  const handleScheduleSave = async () => {
+    await updateSettings({
+      posting_interval_hours: parseInt(tempInterval),
+      default_post_time: tempTime + ':00',
+    });
+    setScheduleDialogOpen(false);
   };
 
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <StatCard label="New" value={stats?.new || 0} color="bg-blue-500" />
-        <StatCard label="Pending Review" value={(stats?.tagged || 0)} color="bg-yellow-500" />
-        <StatCard label="Scheduled" value={queueTotal || 0} color="bg-purple-500" />
-        <StatCard label="Posted" value={stats?.posted || 0} color="bg-green-500" />
+  const getIntervalLabel = () => {
+    return INTERVALS.find((i) => i.value === settings?.posting_interval_hours?.toString())?.label || 'Every 12 hours';
+  };
+
+  if (statsLoading) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div className="h-20 skeleton rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 skeleton rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Hero Area */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-display text-foreground">{getGreeting()}, Hafsa</h1>
+          <p className="text-muted-foreground mt-1">Here&apos;s what&apos;s happening with your Pinterest automation</p>
+        </div>
+        <Button
+          onClick={handleSync}
+          disabled={syncing || !settings?.google_connected}
+          size="lg"
+          className="group shadow-glow"
+        >
+          <RefreshCw className={`w-5 h-5 mr-2 transition-transform group-hover:rotate-180 ${syncing ? 'animate-spin' : ''}`} />
+          Sync from Drive
+        </Button>
       </div>
 
-      {/* Sync Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Sync Photos from Drive</h2>
-
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleSync}
-            disabled={syncing || !settings?.google_connected}
-            className="px-4 py-2 bg-pinterest-red text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {syncing ? 'Syncing...' : 'Sync Photos'}
-          </button>
-
-          {!settings?.google_connected && (
-            <span className="text-sm text-red-600">
-              Connect Google Drive in Settings first
-            </span>
-          )}
-
-          {syncMessage && (
-            <span className="text-sm text-gray-600">{syncMessage}</span>
-          )}
+      {/* Posting Schedule Inline */}
+      <div className="section-card flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Posting Schedule</p>
+            <p className="font-medium text-foreground">
+              {getIntervalLabel()} at {settings?.default_post_time?.slice(0, 5) || '09:00'}
+            </p>
+          </div>
         </div>
 
-        {settings?.drive_folder_id && (
-          <p className="mt-2 text-sm text-gray-500">
-            Folder ID: {settings.drive_folder_id}
-          </p>
-        )}
+        <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Pencil className="w-4 h-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Posting Schedule</DialogTitle>
+              <DialogDescription>
+                Configure how often pins are automatically posted
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Posting Interval</Label>
+                <Select value={tempInterval} onValueChange={setTempInterval}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERVALS.map((interval) => (
+                      <SelectItem key={interval.value} value={interval.value}>
+                        {interval.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Default Post Time</Label>
+                <Input
+                  type="time"
+                  value={tempTime}
+                  onChange={(e) => setTempTime(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleScheduleSave}>
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Posting Interval */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Posting Schedule</h2>
-
-        <div className="flex items-center gap-4 mb-4">
-          <label className="text-sm text-gray-700">Post every:</label>
-          <select
-            value={settings?.posting_interval_hours || 24}
-            onChange={(e) => handleIntervalChange(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-1.5"
-          >
-            <option value={6}>6 hours</option>
-            <option value={12}>12 hours</option>
-            <option value={24}>24 hours (1/day)</option>
-            <option value={48}>48 hours (every 2 days)</option>
-            <option value={168}>7 days (1/week)</option>
-          </select>
-
-          <span className="text-sm text-gray-500">
-            at {settings ? formatTime(settings.default_post_time) : '10:00 AM'}
-          </span>
-        </div>
-
-        {nextPost && (
-          <p className="text-sm text-gray-600">
-            Next pin scheduled for: <strong>{formatDate(nextPost)}</strong>
-          </p>
-        )}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="New Photos"
+          value={stats?.new || 0}
+          icon={<Image className="w-full h-full" />}
+          variant="warning"
+          description="Awaiting review"
+          href="/review"
+        />
+        <StatCard
+          title="Pending Review"
+          value={stats?.tagged || 0}
+          icon={<Clock className="w-full h-full" />}
+          variant="info"
+          description="Ready for approval"
+          href="/review"
+        />
+        <StatCard
+          title="Scheduled"
+          value={queueTotal || 0}
+          icon={<Send className="w-full h-full" />}
+          variant="primary"
+          description="In posting queue"
+          href="/queue"
+        />
+        <StatCard
+          title="Posted"
+          value={stats?.posted || 0}
+          icon={<CheckCircle className="w-full h-full" />}
+          variant="success"
+          description="Successfully shared"
+        />
       </div>
 
-      {/* Quick Stats */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Status</h2>
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-center gap-2">
-            <span className={settings?.google_connected ? 'text-green-600' : 'text-red-600'}>
-              {settings?.google_connected ? '●' : '○'}
-            </span>
-            Google Drive: {settings?.google_connected ? 'Connected' : 'Not connected'}
-          </li>
-          <li className="flex items-center gap-2">
-            <span className={settings?.pinterest_connected ? 'text-green-600' : 'text-red-600'}>
-              {settings?.pinterest_connected ? '●' : '○'}
-            </span>
-            Pinterest: {settings?.pinterest_connected ? 'Connected' : 'Not connected'}
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-gray-400">●</span>
-            {queueTotal} pins in queue
-          </li>
-        </ul>
+      {/* Bottom Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <NextPinPreview queueItem={nextQueueItem} />
+        <ActivityFeed activities={mockActivities} />
       </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className={`w-2 h-2 rounded-full ${color} mb-2`} />
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-sm text-gray-500">{label}</p>
     </div>
   );
 }
