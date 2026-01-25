@@ -47,7 +47,7 @@ const mockActivities = [
 export default function Dashboard() {
   const { stats, isLoading: statsLoading, mutate: mutateStats } = usePhotoStats();
   const { settings, update: updateSettings } = useSettings();
-  const { queue, nextPost, total: queueTotal } = useQueue();
+  const { pins, nextPost, total: queueTotal } = useQueue();
   const { sync } = useSyncPhotos();
 
   const [syncing, setSyncing] = useState(false);
@@ -56,16 +56,16 @@ export default function Dashboard() {
   const [tempTime, setTempTime] = useState(settings?.default_post_time?.slice(0, 5) || '09:00');
 
   // Convert first queue item to QueueItem format for NextPinPreview
-  const nextQueueItem: QueueItem | null = queue?.[0] ? {
-    id: queue[0].id,
-    photo_id: queue[0].photo_id,
-    board_id: queue[0].board_id,
-    link_url: queue[0].link_url,
-    title: queue[0].title,
-    file_name: queue[0].photo_file_name,
-    thumbnail_url: queue[0].photo_thumbnail_url,
-    position: queue[0].position,
-    scheduled_at: queue[0].scheduled_for || new Date().toISOString(),
+  const nextQueueItem: QueueItem | null = pins?.[0] ? {
+    id: pins[0].id,
+    photo_id: pins[0].photo_id,
+    board_id: pins[0].board_id,
+    link_url: pins[0].link_url,
+    title: pins[0].title,
+    file_name: pins[0].photo_file_name,
+    thumbnail_url: pins[0].photo_thumbnail_url,
+    position: pins[0].position,
+    scheduled_at: pins[0].scheduled_for || new Date().toISOString(),
     status: 'pending',
   } : null;
 
