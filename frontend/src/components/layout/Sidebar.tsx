@@ -56,7 +56,7 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
         <p className="text-xs text-muted-foreground text-center">
-          Pinterest Automation v1.0
+          AutoPin v1.0
         </p>
       </div>
     </aside>
