@@ -52,6 +52,20 @@ export interface ScheduledPin {
   tags?: string[];
 }
 
+// Alias for dashboard components
+export interface QueueItem {
+  id: string;
+  photo_id: string;
+  board_id: string;
+  link_url?: string;
+  title?: string;
+  file_name?: string;
+  thumbnail_url?: string;
+  position: number;
+  scheduled_at: string;
+  status: 'pending' | 'posted' | 'failed';
+}
+
 export interface QueueListResponse {
   pins: ScheduledPin[];
   total: number;
