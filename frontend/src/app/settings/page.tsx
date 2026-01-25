@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useSettings, useBoardMappings } from '@/hooks/useSettings';
 import { formatTime } from '@/lib/utils';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function SettingsPage() {
   const { settings, update: updateSettings, isLoading } = useSettings();
   const { mappings, updateMapping } = useBoardMappings();
@@ -77,7 +79,7 @@ export default function SettingsPage() {
           </div>
 
           <button
-            onClick={() => window.open('/api/auth/google/authorize', '_blank')}
+            onClick={() => window.location.href = `${API_URL}/auth/google/authorize`}
             className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
           >
             {settings?.google_connected ? 'Reconnect' : 'Connect'} Google Drive
@@ -101,7 +103,7 @@ export default function SettingsPage() {
         </div>
 
         <button
-          onClick={() => window.open('/api/auth/pinterest/authorize', '_blank')}
+          onClick={() => window.location.href = `${API_URL}/auth/pinterest/authorize`}
           className="px-4 py-2 bg-pinterest-red text-white rounded-lg text-sm font-medium hover:bg-red-700"
         >
           {settings?.pinterest_connected ? 'Reconnect' : 'Connect'} Pinterest
