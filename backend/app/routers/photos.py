@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File
 from typing import Optional, List
+import uuid
+from datetime import datetime
 from app.services.supabase_client import get_supabase
 from app.models.photo import (
     PhotoResponse,
@@ -7,10 +9,14 @@ from app.models.photo import (
     PhotoUpdateStatus,
     PhotoStatus,
     PhotoSyncResponse,
+    PhotoUploadResponse,
 )
 from supabase import Client
 
 router = APIRouter(prefix="/photos", tags=["photos"])
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 @router.get("", response_model=PhotoListResponse)
@@ -42,6 +48,149 @@ async def list_photos(
         photos_with_tags.append(PhotoResponse(**photo))
 
     return PhotoListResponse(photos=photos_with_tags, total=result.count or 0)
+
+
+@router.post("/upload", response_model=PhotoUploadResponse)
+async def upload_photo(
+    file: UploadFile = File(...),
+    supabase: Client = Depends(get_supabase),
+):
+    """Upload a photo manually."""
+    # Validate file extension
+    file_ext = "." + file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
+    # Read file content
+    content = await file.read()
+
+    # Validate file size
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
+
+    # Generate unique filename
+    unique_id = str(uuid.uuid4())
+    storage_path = f"uploads/{unique_id}{file_ext}"
+
+    try:
+        # Upload to Supabase Storage
+        supabase.storage.from_("photos").upload(
+            path=storage_path,
+            file=content,
+            file_options={"content-type": file.content_type}
+        )
+
+        # Get public URL
+        public_url = supabase.storage.from_("photos").get_public_url(storage_path)
+
+        # Create photo record in database
+        photo_data = {
+            "id": unique_id,
+            "file_name": file.filename,
+            "drive_file_id": f"upload_{unique_id}",  # Use upload prefix to distinguish from Drive photos
+            "drive_url": public_url,  # Using drive_url field for the image URL
+            "thumbnail_url": public_url,  # Same URL for thumbnail
+            "status": "new",
+            "created_at": datetime.utcnow().isoformat(),
+        }
+
+        result = supabase.table("photos").insert(photo_data).execute()
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to create photo record")
+
+        return PhotoUploadResponse(
+            id=unique_id,
+            file_name=file.filename,
+            url=public_url,
+            thumbnail_url=public_url,
+            status=PhotoStatus.NEW,
+            created_at=datetime.utcnow(),
+        )
+
+    except Exception as e:
+        # Clean up uploaded file if database insert fails
+        try:
+            supabase.storage.from_("photos").remove([storage_path])
+        except:
+            pass
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@router.post("/upload/batch")
+async def upload_photos_batch(
+    files: List[UploadFile] = File(...),
+    supabase: Client = Depends(get_supabase),
+):
+    """Upload multiple photos at once."""
+    results = []
+    errors = []
+
+    for file in files:
+        try:
+            # Validate file extension
+            file_ext = "." + file.filename.split(".")[-1].lower() if "." in file.filename else ""
+            if file_ext not in ALLOWED_EXTENSIONS:
+                errors.append({"file": file.filename, "error": "Invalid file type"})
+                continue
+
+            # Read file content
+            content = await file.read()
+
+            # Validate file size
+            if len(content) > MAX_FILE_SIZE:
+                errors.append({"file": file.filename, "error": "File too large"})
+                continue
+
+            # Generate unique filename
+            unique_id = str(uuid.uuid4())
+            storage_path = f"uploads/{unique_id}{file_ext}"
+
+            # Upload to Supabase Storage
+            supabase.storage.from_("photos").upload(
+                path=storage_path,
+                file=content,
+                file_options={"content-type": file.content_type}
+            )
+
+            # Get public URL
+            public_url = supabase.storage.from_("photos").get_public_url(storage_path)
+
+            # Create photo record
+            photo_data = {
+                "id": unique_id,
+                "file_name": file.filename,
+                "drive_file_id": f"upload_{unique_id}",  # Use upload prefix to distinguish
+                "drive_url": public_url,
+                "thumbnail_url": public_url,
+                "status": "new",
+                "created_at": datetime.utcnow().isoformat(),
+            }
+
+            supabase.table("photos").insert(photo_data).execute()
+
+            results.append({
+                "id": unique_id,
+                "file_name": file.filename,
+                "url": public_url,
+                "status": "new"
+            })
+
+        except Exception as e:
+            errors.append({"file": file.filename, "error": str(e)})
+
+    return {
+        "uploaded": len(results),
+        "failed": len(errors),
+        "photos": results,
+        "errors": errors
+    }
 
 
 @router.get("/{photo_id}", response_model=PhotoResponse)

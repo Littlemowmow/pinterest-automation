@@ -37,6 +37,45 @@ export const api = {
   syncPhotos: () =>
     request<{ synced_count: number; new_photos: any[] }>('/photos/sync', { method: 'POST' }),
 
+  uploadPhoto: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_URL}/photos/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new ApiError(res.status, error.detail || `HTTP ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  uploadPhotos: async (files: File[], onProgress?: (uploaded: number, total: number) => void) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    const res = await fetch(`${API_URL}/photos/upload/batch`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new ApiError(res.status, error.detail || `HTTP ${res.status}`);
+    }
+
+    return res.json() as Promise<{
+      uploaded: number;
+      failed: number;
+      photos: Array<{ id: string; file_name: string; url: string; status: string }>;
+      errors: Array<{ file: string; error: string }>;
+    }>;
+  },
+
   updatePhotoStatus: (id: string, status: string) =>
     request<any>(`/photos/${id}`, {
       method: 'PATCH',

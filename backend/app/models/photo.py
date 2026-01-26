@@ -14,7 +14,7 @@ class PhotoStatus(str, Enum):
 
 
 class PhotoBase(BaseModel):
-    drive_file_id: str
+    drive_file_id: Optional[str] = None  # Optional for manual uploads
     file_name: str
     drive_url: str
     thumbnail_url: Optional[str] = None
@@ -22,6 +22,15 @@ class PhotoBase(BaseModel):
 
 class PhotoCreate(PhotoBase):
     pass
+
+
+class PhotoUploadResponse(BaseModel):
+    id: str
+    file_name: str
+    url: str
+    thumbnail_url: Optional[str] = None
+    status: PhotoStatus
+    created_at: datetime
 
 
 class PhotoResponse(PhotoBase):

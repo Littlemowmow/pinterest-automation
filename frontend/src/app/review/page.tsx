@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Images, Sparkles } from 'lucide-react';
+import { Images, Sparkles, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PhotoCard } from '@/components/review/PhotoCard';
+import { PhotoUpload } from '@/components/review/PhotoUpload';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { usePhotos } from '@/hooks/usePhotos';
+import { usePhotos, usePhotoStats } from '@/hooks/usePhotos';
 import { useQueue } from '@/hooks/useQueue';
 import { useBoardMappings } from '@/hooks/useSettings';
 import { api } from '@/lib/api';
@@ -13,9 +14,16 @@ import type { Photo } from '@/lib/types';
 
 export default function ReviewPage() {
   const { photos, isLoading, mutate } = usePhotos('tagged');
+  const { mutate: mutateStats } = usePhotoStats();
   const { addToQueue } = useQueue();
   const { mappings } = useBoardMappings();
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const handleUploadComplete = () => {
+    mutate();
+    mutateStats();
+  };
 
   const handleApprove = async (photo: Photo, boardId: string, linkUrl?: string) => {
     await addToQueue(photo.id, boardId, linkUrl);
@@ -72,13 +80,36 @@ export default function ReviewPage() {
           </p>
         </div>
 
-        {photos && photos.length > 0 && (
-          <Button onClick={handleBulkApprove} variant="success" size="lg">
-            <Sparkles className="w-5 h-5 mr-2" />
-            Bulk Approve All
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowUpload(!showUpload)}
+            variant="outline"
+            size="lg"
+          >
+            <Upload className="w-5 h-5 mr-2" />
+            Upload Photos
+            {showUpload ? (
+              <ChevronUp className="w-4 h-4 ml-2" />
+            ) : (
+              <ChevronDown className="w-4 h-4 ml-2" />
+            )}
           </Button>
-        )}
+
+          {photos && photos.length > 0 && (
+            <Button onClick={handleBulkApprove} variant="success" size="lg">
+              <Sparkles className="w-5 h-5 mr-2" />
+              Bulk Approve All
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Upload Section */}
+      {showUpload && (
+        <div className="section-card">
+          <PhotoUpload onUploadComplete={handleUploadComplete} />
+        </div>
+      )}
 
       {/* Photo List */}
       {!photos || photos.length === 0 ? (
