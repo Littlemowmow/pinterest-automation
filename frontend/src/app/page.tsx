@@ -145,7 +145,7 @@ export default function Dashboard() {
               <GreetingIcon className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-display text-foreground">{greeting.text}</h1>
+              <h1 className="text-display text-foreground">{greeting.text}, Hafsa</h1>
               <p className="text-sm text-muted-foreground">{formatTime()}</p>
             </div>
           </div>
