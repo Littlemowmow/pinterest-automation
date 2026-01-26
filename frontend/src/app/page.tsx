@@ -98,9 +98,9 @@ export default function Dashboard() {
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return { text: 'Good morning', icon: Sun, period: 'morning' };
-    if (hour < 18) return { text: 'Good afternoon', icon: Sunset, period: 'afternoon' };
-    return { text: 'Good evening', icon: Moon, period: 'evening' };
+    if (hour < 12) return { text: 'Sabah khair', icon: Sun, period: 'morning' };
+    if (hour < 18) return { text: 'Assalamu alaikum', icon: Sunset, period: 'afternoon' };
+    return { text: 'Shab bakhair', icon: Moon, period: 'evening' };
   };
 
   const formatTime = () => {
