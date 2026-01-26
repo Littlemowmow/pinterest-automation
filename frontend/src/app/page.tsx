@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { RefreshCw, Image, Clock, CheckCircle, Send, Pencil } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RefreshCw, Image, Clock, CheckCircle, Send, Pencil, Sun, Sunset, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -54,6 +54,13 @@ export default function Dashboard() {
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [tempInterval, setTempInterval] = useState(settings?.posting_interval_hours?.toString() || '12');
   const [tempTime, setTempTime] = useState(settings?.default_post_time?.slice(0, 5) || '09:00');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Convert first queue item to QueueItem format for NextPinPreview
   const nextQueueItem: QueueItem | null = pins?.[0] ? {
@@ -90,11 +97,22 @@ export default function Dashboard() {
   };
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    const hour = currentTime.getHours();
+    if (hour < 12) return { text: 'Good morning', icon: Sun, period: 'morning' };
+    if (hour < 18) return { text: 'Good afternoon', icon: Sunset, period: 'afternoon' };
+    return { text: 'Good evening', icon: Moon, period: 'evening' };
   };
+
+  const formatTime = () => {
+    return currentTime.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const greeting = getGreeting();
+  const GreetingIcon = greeting.icon;
 
   const getIntervalLabel = () => {
     return INTERVALS.find((i) => i.value === settings?.posting_interval_hours?.toString())?.label || 'Every 12 hours';
@@ -118,8 +136,20 @@ export default function Dashboard() {
       {/* Hero Area */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-display text-foreground">{getGreeting()}, Hafsa</h1>
-          <p className="text-muted-foreground mt-1">Here&apos;s what&apos;s happening with your Pinterest automation</p>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              greeting.period === 'morning' ? 'bg-amber-100 text-amber-600' :
+              greeting.period === 'afternoon' ? 'bg-orange-100 text-orange-600' :
+              'bg-indigo-100 text-indigo-600'
+            }`}>
+              <GreetingIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-display text-foreground">{greeting.text}</h1>
+              <p className="text-sm text-muted-foreground">{formatTime()}</p>
+            </div>
+          </div>
+          <p className="text-muted-foreground mt-3">Here&apos;s what&apos;s happening with your Pinterest automation</p>
         </div>
         <Button
           onClick={handleSync}
