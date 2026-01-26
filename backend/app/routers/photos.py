@@ -115,12 +115,19 @@ async def upload_photo(
         )
 
     except Exception as e:
+        error_msg = str(e)
+        # Provide helpful error messages
+        if "bucket" in error_msg.lower() or "not found" in error_msg.lower():
+            raise HTTPException(
+                status_code=500,
+                detail="Storage bucket 'photos' not found. Please create it in Supabase Storage."
+            )
         # Clean up uploaded file if database insert fails
         try:
             supabase.storage.from_("photos").remove([storage_path])
         except:
             pass
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {error_msg}")
 
 
 @router.post("/upload/batch")
@@ -183,7 +190,10 @@ async def upload_photos_batch(
             })
 
         except Exception as e:
-            errors.append({"file": file.filename, "error": str(e)})
+            error_msg = str(e)
+            if "bucket" in error_msg.lower() or "not found" in error_msg.lower():
+                error_msg = "Storage bucket 'photos' not found. Create it in Supabase."
+            errors.append({"file": file.filename, "error": error_msg})
 
     return {
         "uploaded": len(results),
