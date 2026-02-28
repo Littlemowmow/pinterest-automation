@@ -1,0 +1,194 @@
+Build a Next.js 14 (App Router) frontend for a Pinterest automation dashboard. TypeScript, Tailwind CSS, shadcn/ui, axios, @dnd-kit/sortable, lucide-react, sonner for toasts. Dark theme. The backend (FastAPI) will be built separately — use mock data for now but wire all UI actions to the API client below.
+
+## Design Tokens (use these exactly)
+
+- Background: `bg-zinc-950`. Cards: `bg-zinc-900 border-zinc-800`. Text: `text-zinc-100` / `text-zinc-400`.
+- Accent: `rose-500` for primary buttons. Stat card accents: blue-500, amber-500, purple-500, green-500.
+- Cards: `rounded-lg p-6 shadow-sm`. Buttons: `rounded-md`. Grid gaps: `gap-4`. Vertical spacing: `space-y-6`.
+- Titles: `text-2xl font-semibold`. Sections: `text-lg font-medium`. Body: `text-sm`.
+
+## Copy these files exactly
+
+### `lib/types.ts`
+
+```typescript
+export type PhotoStatus = 'new' | 'tagged' | 'approved' | 'scheduled' | 'posted' | 'skipped';
+
+export interface Photo {
+  id: string;
+  drive_file_id: string;
+  file_name: string;
+  drive_url: string;
+  thumbnail_url: string | null;
+  storage_url: string | null;
+  status: PhotoStatus;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduledPin {
+  id: string;
+  photo_id: string;
+  title: string | null;
+  description: string | null;
+  board_id: string;
+  board_name: string;
+  link_url: string | null;
+  position: number;
+  scheduled_for: string | null;
+  posted_at: string | null;
+  pinterest_pin_id: string | null;
+  paused: boolean;
+  photo: Photo;
+  tags: string[];
+}
+
+export interface Settings {
+  drive_folder_id: string | null;
+  posting_interval_hours: number;
+  default_post_time: string;
+  google_connected: boolean;
+  pinterest_connected: boolean;
+}
+
+export interface BoardMapping {
+  id: string;
+  category: string;
+  board_id: string | null;
+  board_name: string;
+  link_url: string | null;
+}
+
+export interface PhotoStats {
+  new: number;
+  tagged: number;
+  approved: number;
+  scheduled: number;
+  posted: number;
+  skipped: number;
+}
+
+export interface QueueResponse {
+  pins: ScheduledPin[];
+  next_post: string | null;
+  is_paused: boolean;
+}
+```
+
+### `lib/api.ts`
+
+```typescript
+import axios from 'axios';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const api = axios.create({ baseURL: API_BASE, headers: { 'Content-Type': 'application/json' } });
+
+export const getGoogleAuthUrl = () => `${API_BASE}/auth/google/authorize`;
+export const getGoogleStatus = () => api.get('/auth/google/status');
+export const disconnectGoogle = () => api.post('/auth/google/disconnect');
+export const getPinterestAuthUrl = () => `${API_BASE}/auth/pinterest/authorize`;
+export const getPinterestStatus = () => api.get('/auth/pinterest/status');
+export const disconnectPinterest = () => api.post('/auth/pinterest/disconnect');
+
+export const getPhotos = (params?: { status?: string; limit?: number; offset?: number }) => api.get('/photos', { params });
+export const updatePhoto = (id: string, data: { status?: string }) => api.patch(`/photos/${id}`, data);
+export const syncPhotos = () => api.post('/photos/sync');
+export const getPhotoStats = () => api.get('/photos/stats/summary');
+
+export const generateTags = (photoId: string) => api.post(`/tags/generate/${photoId}`);
+export const updateTags = (photoId: string, tags: string[]) => api.put(`/tags/${photoId}`, { tags });
+
+export const getQueue = () => api.get('/queue');
+export const addToQueue = (data: { photo_id: string; board_id: string; title?: string; link_url?: string }) => api.post('/queue', data);
+export const bulkAddToQueue = (photoIds: string[]) => api.post('/queue/bulk', { photo_ids: photoIds });
+export const reorderQueueItem = (pinId: string, newPosition: number) => api.patch(`/queue/${pinId}/reorder`, { new_position: newPosition });
+export const removeFromQueue = (pinId: string) => api.delete(`/queue/${pinId}`);
+export const pauseQueue = () => api.post('/queue/pause');
+export const resumeQueue = () => api.post('/queue/resume');
+
+export const getSettings = () => api.get('/settings');
+export const updateSettings = (data: Partial<{ drive_folder_id: string; posting_interval_hours: number; default_post_time: string }>) => api.put('/settings', data);
+export const getBoardMappings = () => api.get('/settings/board-mappings');
+export const updateBoardMapping = (category: string, data: { board_id?: string; board_name?: string; link_url?: string }) => api.put(`/settings/board-mappings/${category}`, data);
+export const fetchPinterestBoards = () => api.get('/settings/pinterest-boards');
+```
+
+### `lib/mock-data.ts`
+
+Generate realistic mock data: 10 photos (mix of statuses: 2 new, 4 tagged, 2 scheduled, 2 posted), 5 scheduled pins, settings object, 8 board mappings. Photo filenames should be things like "bridal-henna-01.jpg", "nail-art-gold.jpg", "floral-centerpiece.jpg". Board categories: henna, bridal, nails, floral, mehndi, desi, outfits, neutral. Use this mock data in all pages until the real backend is connected — wrap API calls in try/catch and fall back to mock data.
+
+---
+
+## Layout
+
+**Sidebar** (fixed left, `w-64`, `bg-zinc-900 border-r border-zinc-800`):
+- Top: app name "PinFlow" with Sparkles icon in rose-500
+- Nav links (vertical): Dashboard `/` (LayoutDashboard), Review `/review` (Image), Queue `/queue` (ListOrdered), Settings `/settings` (Settings2)
+- Active: `bg-zinc-800 text-rose-400`. Inactive: `text-zinc-400 hover:text-zinc-100`
+- Mobile: sidebar hidden, hamburger button in top bar toggles it as overlay
+
+**Root layout**: sidebar left + `<main className="flex-1 overflow-y-auto p-6 lg:p-8">`. Dark mode via `<html className="dark">`.
+
+---
+
+## 4 Pages
+
+### Dashboard `/`
+
+1. **Header row**: "Welcome back" title + large rose-500 "Sync from Google Drive" button (CloudDownload icon, loading spinner on click, calls `syncPhotos()`, success/error toast)
+2. **Schedule card**: Shows "Posting every **24h** at **10:00 AM**". Pencil icon opens Dialog with interval Select (12/24/48/72h) + time input + Save button → `updateSettings()`
+3. **4 stat cards** in `grid-cols-2 lg:grid-cols-4`: New (blue), Pending Review (amber), Scheduled (purple), Posted (green). Each shows label + large count number. Data from `getPhotoStats()`
+4. **Next pin preview card**: thumbnail (w-16 h-16), board name Badge, scheduled time, first 5 tag Badges. Empty: "No pins in queue"
+5. **Activity feed card**: 8 hardcoded recent activity items (sync, approve, post events) with icons + relative timestamps
+
+### Review `/review`
+
+1. **Header**: "Review Queue (N photos)" + "Bulk Approve All" button (confirm dialog first, calls `bulkAddToQueue()`)
+2. **Grid** `grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6` of photo cards. Each card:
+   - Image thumbnail (aspect-video, object-cover, gray placeholder fallback)
+   - File name (truncated)
+   - Tags as removable Badge chips + text input to add new tags (Enter to add)
+   - "Generate Tags" button (Sparkles icon) → calls `generateTags(photoId)`, shows skeleton loading, populates tags on success
+   - Board Select dropdown (options: henna, bridal, nails, floral, mehndi, desi, outfits, neutral)
+   - Link URL input (optional)
+   - Approve button (Check icon, rose-500) → updates status to approved + adds to queue
+   - Skip button (X icon, ghost variant) → updates status to skipped
+   - Card animates out on approve/skip
+3. **Empty state**: "No photos to review — sync from Google Drive to get started" + sync button
+4. **Loading**: 6 skeleton cards
+
+### Queue `/queue`
+
+1. **Header**: "Posting Queue" + next post time + pin count + Pause/Resume Switch (calls `pauseQueue()`/`resumeQueue()`)
+2. **Filter tabs**: "Upcoming" (default) / "Posted"
+3. **Drag-and-drop sortable list** (@dnd-kit/sortable). Each row:
+   - GripVertical drag handle
+   - Thumbnail (w-12 h-12 rounded)
+   - File name + board Badge + first 3 tag Badges (+N more)
+   - Scheduled time on right side
+   - Trash2 delete button (confirm dialog, calls `removeFromQueue()`)
+4. On reorder: call `reorderQueueItem()`, optimistically recalculate times (position 1 = tomorrow at default_post_time, each next += interval hours)
+5. Posted tab: same layout but dimmed (opacity-60), green check, posted_at time, no drag/delete
+6. **Empty state**: "Queue empty — approve photos in Review to start scheduling"
+
+### Settings `/settings`
+
+4 cards stacked vertically:
+
+1. **Google Drive**: connection status dot (green/red) + "Connected"/"Not Connected" label + Connect/Disconnect button + Drive Folder ID input with Save. Connect navigates to `getGoogleAuthUrl()`
+2. **Pinterest**: same pattern. Connect navigates to `getPinterestAuthUrl()`
+3. **Posting Config**: interval Select (12/24/48/72h) + time input + Save button → `updateSettings()`
+4. **Board Mappings**: Table with columns Category | Board Name | Board ID | Link URL. 8 rows (henna, bridal, nails, floral, mehndi, desi, outfits, neutral). All cells editable via Input. Save button per row → `updateBoardMapping()`. "Fetch Pinterest Boards" button at top.
+
+---
+
+## Rules
+
+- Use shadcn/ui for ALL components (Card, Button, Input, Select, Dialog, Badge, Skeleton, Switch, Table, Separator). Do not build custom versions.
+- Every page: skeleton loading state + empty state with action button + error state with retry
+- Sonner toasts for all actions (bottom-right, 4s auto-dismiss)
+- `"use client"` on all pages/components using hooks or state
+- All images: `next/image` with fallback placeholder (gray bg + ImageIcon)
+- All API calls in try/catch — fall back to mock data on failure
+- No separate component files for tiny things — inline when used once
