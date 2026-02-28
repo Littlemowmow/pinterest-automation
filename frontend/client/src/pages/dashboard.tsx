@@ -248,11 +248,15 @@ export default function Dashboard() {
           </div>
           {nextPin ? (
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
-                <ImageIcon className="h-6 w-6 text-zinc-600" />
+              <div className="w-16 h-16 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {(nextPin.photo_storage_url || nextPin.photo_thumbnail_url) ? (
+                  <img src={nextPin.photo_storage_url || nextPin.photo_thumbnail_url || ""} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-zinc-600" />
+                )}
               </div>
               <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-sm font-medium text-zinc-100 truncate">{nextPin.title || nextPin.photo.file_name}</p>
+                <p className="text-sm font-medium text-zinc-100 truncate">{nextPin.title || nextPin.photo_file_name}</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs no-default-active-elevate" data-testid="badge-board">
                     {nextPin.board_name}

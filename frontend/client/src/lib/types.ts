@@ -26,7 +26,10 @@ export interface ScheduledPin {
   posted_at: string | null;
   pinterest_pin_id: string | null;
   paused: boolean;
-  photo: Photo;
+  photo_file_name: string | null;
+  photo_drive_url: string | null;
+  photo_thumbnail_url: string | null;
+  photo_storage_url: string | null;
   tags: string[];
 }
 

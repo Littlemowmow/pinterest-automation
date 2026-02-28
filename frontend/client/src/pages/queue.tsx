@@ -41,11 +41,15 @@ function SortableRow({ pin, onDelete }: { pin: ScheduledPin; onDelete: (id: stri
       <button className="cursor-grab text-zinc-700 hover-elevate flex-shrink-0 touch-none" {...attributes} {...listeners} data-testid={`drag-handle-${pin.id}`}>
         <GripVertical className="h-4 w-4" />
       </button>
-      <div className="w-11 h-11 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
-        <ImageIcon className="h-4 w-4 text-zinc-600" />
+      <div className="w-11 h-11 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {(pin.photo_storage_url || pin.photo_thumbnail_url) ? (
+          <img src={pin.photo_storage_url || pin.photo_thumbnail_url || ""} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <ImageIcon className="h-4 w-4 text-zinc-600" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-zinc-100 truncate">{pin.title || pin.photo.file_name}</p>
+        <p className="text-sm font-medium text-zinc-100 truncate">{pin.title || pin.photo_file_name}</p>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           <Badge variant="secondary" className="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 no-default-active-elevate">{pin.board_name}</Badge>
           {pin.tags.slice(0, 3).map((tag) => (
@@ -73,11 +77,15 @@ function PostedRow({ pin }: { pin: ScheduledPin }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 opacity-50" data-testid={`row-posted-${pin.id}`}>
       <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-      <div className="w-11 h-11 rounded-lg bg-zinc-800 border border-zinc-700/50 flex items-center justify-center flex-shrink-0">
-        <ImageIcon className="h-4 w-4 text-zinc-600" />
+      <div className="w-11 h-11 rounded-lg bg-zinc-800 border border-zinc-700/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {(pin.photo_storage_url || pin.photo_thumbnail_url) ? (
+          <img src={pin.photo_storage_url || pin.photo_thumbnail_url || ""} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <ImageIcon className="h-4 w-4 text-zinc-600" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-zinc-300 truncate">{pin.title || pin.photo.file_name}</p>
+        <p className="text-sm font-medium text-zinc-300 truncate">{pin.title || pin.photo_file_name}</p>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 no-default-active-elevate">{pin.board_name}</Badge>
           {pin.tags.slice(0, 3).map((tag) => (

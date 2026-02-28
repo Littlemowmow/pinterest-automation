@@ -23,10 +23,12 @@ class ScheduledPinResponse(ScheduledPinBase):
     pinterest_pin_id: Optional[str] = None
     paused: bool = False
     created_at: datetime
+    board_name: Optional[str] = None
     # Include photo data for display
     photo_file_name: Optional[str] = None
     photo_drive_url: Optional[str] = None
     photo_thumbnail_url: Optional[str] = None
+    photo_storage_url: Optional[str] = None
     tags: Optional[List[str]] = None
 
     class Config:

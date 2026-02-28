@@ -31,7 +31,9 @@ export default function Review() {
     setLoading(true);
     try {
       const res = await getPhotos({ status: "tagged" });
-      setPhotos(res.data.filter((p: Photo) => p.status === "tagged" || p.status === "new"));
+      const photos = res.data.photos || res.data;
+      const list = Array.isArray(photos) ? photos : [];
+      setPhotos(list.filter((p: Photo) => p.status === "tagged" || p.status === "new"));
     } catch {
       setPhotos(mockPhotos.filter((p) => p.status === "tagged" || p.status === "new"));
     } finally {
@@ -203,9 +205,19 @@ export default function Review() {
             data-testid={`card-photo-${photo.id}`}
           >
             <div className="aspect-video bg-gradient-to-br from-zinc-800 to-zinc-850 rounded-t-lg flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-purple-500/5" />
-              <div className="w-12 h-12 rounded-xl bg-zinc-700/50 border border-zinc-600/50 flex items-center justify-center">
-                <ImageIcon className="h-5 w-5 text-zinc-500" />
+              {(photo.storage_url || photo.thumbnail_url) ? (
+                <img
+                  src={photo.storage_url || photo.thumbnail_url || ""}
+                  alt={photo.file_name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                />
+              ) : null}
+              <div className={`${(photo.storage_url || photo.thumbnail_url) ? 'hidden' : ''} absolute inset-0 flex items-center justify-center`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-purple-500/5" />
+                <div className="w-12 h-12 rounded-xl bg-zinc-700/50 border border-zinc-600/50 flex items-center justify-center">
+                  <ImageIcon className="h-5 w-5 text-zinc-500" />
+                </div>
               </div>
             </div>
 

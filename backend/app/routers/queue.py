@@ -78,7 +78,7 @@ async def list_queue(
     """Get all scheduled pins."""
     query = (
         supabase.table("scheduled_pins")
-        .select("*, photos(file_name, drive_url, thumbnail_url)")
+        .select("*, photos(file_name, drive_url, thumbnail_url, storage_url)")
         .order("position")
     )
 
@@ -86,6 +86,14 @@ async def list_queue(
         query = query.is_("posted_at", "null")
 
     result = query.execute()
+
+    # Preload board mappings for name lookup
+    board_mappings = supabase.table("board_mappings").select("category, board_name, board_id").execute()
+    board_name_map = {}
+    for bm in (board_mappings.data or []):
+        board_name_map[bm["category"]] = bm["board_name"]
+        if bm.get("board_id"):
+            board_name_map[bm["board_id"]] = bm["board_name"]
 
     pins = []
     next_post = None
@@ -103,11 +111,16 @@ async def list_queue(
             .execute()
         )
 
+        board_id = pin_data.get("board_id", "")
+        board_name = board_name_map.get(board_id, board_id.capitalize())
+
         pin = ScheduledPinResponse(
             **pin_data,
+            board_name=board_name,
             photo_file_name=photo_data.get("file_name"),
             photo_drive_url=photo_data.get("drive_url"),
             photo_thumbnail_url=photo_data.get("thumbnail_url"),
+            photo_storage_url=photo_data.get("storage_url"),
             tags=[t["tag"] for t in tags_result.data],
         )
         pins.append(pin)
@@ -214,11 +227,17 @@ async def add_to_queue(
         .execute()
     )
 
+    # Get board name
+    mapping = supabase.table("board_mappings").select("board_name").eq("category", request.board_id).execute()
+    board_name = mapping.data[0]["board_name"] if mapping.data else request.board_id.capitalize()
+
     return ScheduledPinResponse(
         **updated.data,
+        board_name=board_name,
         photo_file_name=photo.data["file_name"],
         photo_drive_url=photo.data["drive_url"],
         photo_thumbnail_url=photo.data.get("thumbnail_url"),
+        photo_storage_url=photo.data.get("storage_url"),
         tags=tags,
     )
 
@@ -326,7 +345,7 @@ async def reorder_pin(
     # Return updated pin
     result = (
         supabase.table("scheduled_pins")
-        .select("*, photos(file_name, drive_url, thumbnail_url)")
+        .select("*, photos(file_name, drive_url, thumbnail_url, storage_url)")
         .eq("id", pin_id)
         .single()
         .execute()
@@ -340,11 +359,17 @@ async def reorder_pin(
         .execute()
     )
 
+    board_id = result.data.get("board_id", "")
+    mapping = supabase.table("board_mappings").select("board_name").eq("category", board_id).execute()
+    board_name = mapping.data[0]["board_name"] if mapping.data else board_id.capitalize()
+
     return ScheduledPinResponse(
         **result.data,
+        board_name=board_name,
         photo_file_name=photo_data.get("file_name"),
         photo_drive_url=photo_data.get("drive_url"),
         photo_thumbnail_url=photo_data.get("thumbnail_url"),
+        photo_storage_url=photo_data.get("storage_url"),
         tags=[t["tag"] for t in tags_result.data],
     )
 

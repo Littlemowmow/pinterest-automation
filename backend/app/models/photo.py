@@ -26,6 +26,7 @@ class PhotoCreate(PhotoBase):
 
 class PhotoResponse(PhotoBase):
     id: str
+    storage_url: Optional[str] = None
     status: PhotoStatus
     created_at: datetime
     updated_at: Optional[datetime] = None

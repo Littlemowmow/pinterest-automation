@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import time
 
@@ -17,5 +17,5 @@ class SettingsResponse(BaseModel):
 
 class SettingsUpdate(BaseModel):
     drive_folder_id: Optional[str] = None
-    posting_interval_hours: Optional[int] = None
+    posting_interval_hours: Optional[int] = Field(None, gt=0, le=720)
     default_post_time: Optional[str] = None
