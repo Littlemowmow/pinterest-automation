@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import httpx
 from app.services.supabase_client import get_supabase
 from app.models.settings import SettingsResponse, SettingsUpdate
 from app.models.board_mapping import (
@@ -81,6 +82,37 @@ async def list_board_mappings(
     return BoardMappingListResponse(
         mappings=[BoardMappingResponse(**m) for m in result.data]
     )
+
+
+@router.get("/pinterest-boards")
+async def get_pinterest_boards(
+    supabase: Client = Depends(get_supabase),
+):
+    """Fetch user's Pinterest boards."""
+    settings_result = (
+        supabase.table("settings")
+        .select("pinterest_access_token")
+        .eq("id", SETTINGS_ID)
+        .single()
+        .execute()
+    )
+
+    token = (settings_result.data or {}).get("pinterest_access_token")
+    if not token:
+        raise HTTPException(status_code=400, detail="Pinterest not connected")
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            "https://api.pinterest.com/v5/boards",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15.0,
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="Failed to fetch Pinterest boards")
+
+    boards = resp.json().get("items", [])
+    return [{"id": b["id"], "name": b["name"]} for b in boards]
 
 
 @router.put("/board-mappings/{category}", response_model=BoardMappingResponse)

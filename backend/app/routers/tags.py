@@ -3,10 +3,10 @@ from app.services.supabase_client import get_supabase
 from app.models.tag import TagListResponse, TagUpdateRequest, TagGenerateResponse
 from supabase import Client
 
-router = APIRouter(prefix="/photos", tags=["tags"])
+router = APIRouter(prefix="/tags", tags=["tags"])
 
 
-@router.get("/{photo_id}/tags", response_model=TagListResponse)
+@router.get("/{photo_id}", response_model=TagListResponse)
 async def get_tags(
     photo_id: str,
     supabase: Client = Depends(get_supabase),
@@ -21,7 +21,7 @@ async def get_tags(
     return TagListResponse(tags=[t["tag"] for t in result.data])
 
 
-@router.put("/{photo_id}/tags", response_model=TagListResponse)
+@router.put("/{photo_id}", response_model=TagListResponse)
 async def update_tags(
     photo_id: str,
     update: TagUpdateRequest,
@@ -49,13 +49,13 @@ async def update_tags(
     return TagListResponse(tags=update.tags)
 
 
-@router.post("/{photo_id}/generate-tags", response_model=TagGenerateResponse)
+@router.post("/generate/{photo_id}", response_model=TagGenerateResponse)
 async def generate_tags(
     photo_id: str,
     supabase: Client = Depends(get_supabase),
 ):
-    """Generate tags using OpenAI Vision API."""
-    from app.services.openai_vision import generate_tags_for_photo
+    """Generate tags using Anthropic Claude Vision API."""
+    from app.services.claude_vision import generate_tags_for_photo
 
     result = await generate_tags_for_photo(supabase, photo_id)
 

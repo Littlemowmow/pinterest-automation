@@ -4,14 +4,17 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.routers import photos, tags, settings as settings_router, queue, auth
+from app.services.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     print("Pinterest Automation API starting...")
+    start_scheduler()
     yield
     # Shutdown
+    stop_scheduler()
     print("Pinterest Automation API shutting down...")
 
 

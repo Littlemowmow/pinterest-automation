@@ -1,9 +1,16 @@
+import io
+import logging
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 from google.auth.transport.requests import Request
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 from app.config import settings
+from app.services.storage import ensure_bucket_exists, upload_image_to_storage
+
+logger = logging.getLogger(__name__)
 
 SETTINGS_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -19,7 +26,6 @@ class GoogleDriveService:
             client_secret=settings.google_client_secret,
         )
 
-        # Refresh if expired
         if self.credentials.expired and self.credentials.refresh_token:
             self.credentials.refresh(Request())
 
@@ -28,7 +34,6 @@ class GoogleDriveService:
     def list_images_in_folder(self, folder_id: str) -> List[Dict]:
         """List all image files in a Google Drive folder."""
         query = f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false"
-
         results = []
         page_token = None
 
@@ -41,28 +46,32 @@ class GoogleDriveService:
                 pageSize=100,
             ).execute()
 
-            files = response.get("files", [])
-            results.extend(files)
-
+            results.extend(response.get("files", []))
             page_token = response.get("nextPageToken")
             if not page_token:
                 break
 
         return results
 
+    def download_file_bytes(self, file_id: str) -> bytes:
+        """Download the full file content from Google Drive as bytes."""
+        request = self.service.files().get_media(fileId=file_id)
+        buffer = io.BytesIO()
+        downloader = MediaIoBaseDownload(buffer, request)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+        return buffer.getvalue()
+
     def get_file_download_url(self, file_id: str) -> str:
-        """Get a direct download URL for a file."""
-        # For images, we can use the webContentLink or construct a direct URL
         return f"https://drive.google.com/uc?export=view&id={file_id}"
 
     def get_file_thumbnail(self, file_id: str) -> str:
-        """Get thumbnail URL for a file."""
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w400"
 
 
 async def sync_photos_from_drive(supabase, folder_id: str) -> Dict:
-    """Sync photos from Google Drive folder to database."""
-    # Get OAuth tokens from settings
+    """Sync photos from Google Drive folder to database and Supabase Storage."""
     settings_result = supabase.table("settings").select(
         "google_access_token, google_refresh_token"
     ).eq("id", SETTINGS_ID).single().execute()
@@ -79,11 +88,16 @@ async def sync_photos_from_drive(supabase, folder_id: str) -> Dict:
     except Exception as e:
         return {"error": f"Failed to list files: {str(e)}", "synced": 0}
 
+    # Ensure storage bucket exists
+    try:
+        await ensure_bucket_exists(supabase)
+    except Exception as e:
+        logger.error("Storage bucket setup failed: %s", e)
+
     # Get existing photos to avoid duplicates
     existing = supabase.table("photos").select("drive_file_id").execute()
     existing_ids = {p["drive_file_id"] for p in existing.data}
 
-    # Insert new photos
     synced_count = 0
     for file in files:
         if file["id"] not in existing_ids:
@@ -96,9 +110,27 @@ async def sync_photos_from_drive(supabase, folder_id: str) -> Dict:
             }
 
             try:
-                supabase.table("photos").insert(photo_data).execute()
+                insert_result = supabase.table("photos").insert(photo_data).execute()
+                photo_id = insert_result.data[0]["id"] if insert_result.data else None
                 synced_count += 1
             except Exception as e:
-                print(f"Failed to insert photo {file['name']}: {e}")
+                logger.error("Failed to insert photo %s: %s", file["name"], e)
+                continue
+
+            # Download from Drive and upload to Supabase Storage
+            try:
+                file_bytes = drive_service.download_file_bytes(file["id"])
+                storage_url = await upload_image_to_storage(
+                    supabase=supabase,
+                    file_bytes=file_bytes,
+                    file_name=file["name"],
+                    drive_file_id=file["id"],
+                )
+                if photo_id:
+                    supabase.table("photos").update(
+                        {"storage_url": storage_url}
+                    ).eq("id", photo_id).execute()
+            except Exception as e:
+                logger.error("Failed to upload %s to storage: %s", file["name"], e)
 
     return {"synced": synced_count, "total_in_folder": len(files)}

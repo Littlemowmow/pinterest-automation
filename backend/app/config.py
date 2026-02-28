@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     google_client_secret: Optional[str] = None
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
 
-    # OpenAI
-    openai_api_key: Optional[str] = None
+    # Anthropic
+    anthropic_api_key: str = ""
 
     # Pinterest
     pinterest_app_id: Optional[str] = None

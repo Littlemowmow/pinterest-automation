@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timedelta, time as dt_time
+from pydantic import BaseModel
 from app.services.supabase_client import get_supabase
 from app.models.scheduled_pin import (
     ScheduledPinResponse,
@@ -9,9 +10,14 @@ from app.models.scheduled_pin import (
     ReorderRequest,
     ApprovePhotoRequest,
 )
+from app.services.claude_vision import suggest_board
 from supabase import Client
 
 router = APIRouter(prefix="/queue", tags=["queue"])
+
+
+class BulkApproveRequest(BaseModel):
+    photo_ids: List[str]
 
 SETTINGS_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -215,6 +221,73 @@ async def add_to_queue(
         photo_thumbnail_url=photo.data.get("thumbnail_url"),
         tags=tags,
     )
+
+
+@router.post("/bulk")
+async def bulk_add_to_queue(
+    request: BulkApproveRequest,
+    supabase: Client = Depends(get_supabase),
+):
+    """Bulk approve photos and add them to the posting queue."""
+    created_pins = []
+
+    # Get current max position
+    max_pos = (
+        supabase.table("scheduled_pins")
+        .select("position")
+        .order("position", desc=True)
+        .limit(1)
+        .execute()
+    )
+    next_position = (max_pos.data[0]["position"] + 1) if max_pos.data else 0
+
+    for photo_id in request.photo_ids:
+        # Get photo
+        photo = supabase.table("photos").select("*").eq("id", photo_id).single().execute()
+        if not photo.data:
+            continue
+
+        # Skip if already in queue
+        existing = supabase.table("scheduled_pins").select("id").eq("photo_id", photo_id).execute()
+        if existing.data:
+            continue
+
+        # Get tags and suggest board
+        tags_result = supabase.table("tags").select("tag").eq("photo_id", photo_id).execute()
+        tags = [t["tag"] for t in tags_result.data]
+        suggested_category = suggest_board(tags)
+
+        # Get board mapping
+        mapping = supabase.table("board_mappings").select("*").eq("category", suggested_category).execute()
+        board_id = mapping.data[0].get("board_id", suggested_category) if mapping.data else suggested_category
+        link_url = mapping.data[0].get("link_url") if mapping.data else None
+
+        description = " ".join(f"#{tag}" for tag in tags)
+
+        pin_data = {
+            "photo_id": photo_id,
+            "board_id": board_id or suggested_category,
+            "title": photo.data.get("file_name", ""),
+            "description": description,
+            "link_url": link_url,
+            "position": next_position,
+            "paused": False,
+        }
+
+        result = supabase.table("scheduled_pins").insert(pin_data).execute()
+
+        # Update photo status
+        supabase.table("photos").update({"status": "approved", "updated_at": "now()"}).eq(
+            "id", photo_id
+        ).execute()
+
+        created_pins.append(result.data[0] if result.data else pin_data)
+        next_position += 1
+
+    # Recalculate schedule
+    await recalculate_schedule(supabase)
+
+    return {"pins": created_pins, "count": len(created_pins)}
 
 
 @router.patch("/{pin_id}/reorder", response_model=ScheduledPinResponse)
