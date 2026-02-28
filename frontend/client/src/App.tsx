@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import Review from "@/pages/review";
 import Queue from "@/pages/queue";
 import SettingsPage from "@/pages/settings";
+import Privacy from "@/pages/privacy";
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/review" component={Review} />
       <Route path="/queue" component={Queue} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/privacy" component={Privacy} />
       <Route component={NotFound} />
     </Switch>
   );
