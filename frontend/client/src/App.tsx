@@ -124,7 +124,8 @@ function AuthenticatedApp() {
         }
       })
       .catch(() => {
-        setNeedsOnboarding(false);
+        // API unavailable — still show onboarding if never completed
+        setNeedsOnboarding(true);
       });
   }, [location]);
 
@@ -143,15 +144,15 @@ function AuthenticatedApp() {
 }
 
 function App() {
-  // ?reset in URL clears all state and restarts from login
-  if (window.location.search.includes("reset")) {
-    localStorage.clear();
-    window.history.replaceState({}, "", "/");
-    window.location.reload();
-    return null;
-  }
-
-  const [authed, setAuthed] = useState(() => localStorage.getItem("authed") === "true");
+  const [authed, setAuthed] = useState(() => {
+    // ?reset in URL clears all state and restarts from login
+    if (window.location.search.includes("reset")) {
+      localStorage.clear();
+      window.history.replaceState({}, "", "/");
+      return false;
+    }
+    return localStorage.getItem("authed") === "true";
+  });
 
   return (
     <QueryClientProvider client={queryClient}>
