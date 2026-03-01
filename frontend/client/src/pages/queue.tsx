@@ -18,7 +18,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getQueue, removeFromQueue, reorderQueueItem, pauseQueue, resumeQueue, getSettings } from "@/lib/api";
-import { mockScheduledPins, mockSettings } from "@/lib/mock-data";
 import type { ScheduledPin, Settings } from "@/lib/types";
 
 function formatTime(dateStr: string | null) {
@@ -108,7 +107,7 @@ export default function Queue() {
   const [nextPost, setNextPost] = useState<string | null>(null);
   const [tab, setTab] = useState("upcoming");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [settings, setSettings] = useState<Settings>(mockSettings);
+  const [settings, setSettings] = useState<Settings>({ drive_folder_id: null, posting_interval_hours: 24, default_post_time: "10:00", google_connected: false, pinterest_connected: false });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -126,8 +125,8 @@ export default function Queue() {
       setNextPost(queueRes.data.next_post || null);
       setSettings(settingsRes.data);
     } catch {
-      setPins(mockScheduledPins);
-      setNextPost("2026-03-01T10:00:00Z");
+      toast.error("Failed to load queue");
+      setPins([]);
     } finally {
       setLoading(false);
     }

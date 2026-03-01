@@ -1,23 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   CloudDownload,
   Loader2,
   Pencil,
   ImageIcon,
-  CloudIcon,
-  CheckCircle2,
-  SendIcon,
-  TagIcon,
   Clock,
   Moon,
   Sun,
@@ -26,24 +23,13 @@ import {
   TrendingUp,
   CalendarClock,
   Pin,
+  CheckCircle,
+  ArrowRight,
 } from "lucide-react";
+import { getBoardMappings } from "@/lib/api";
 import { toast } from "sonner";
 import { syncPhotos, getPhotoStats, getSettings, getQueue, updateSettings } from "@/lib/api";
-import { mockPhotoStats, mockSettings, mockScheduledPins, mockActivityFeed } from "@/lib/mock-data";
 import type { PhotoStats, Settings, ScheduledPin } from "@/lib/types";
-
-function formatRelativeTime(dateStr: string) {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
-}
 
 function formatScheduledTime(dateStr: string | null) {
   if (!dateStr) return "Not scheduled";
@@ -58,22 +44,16 @@ function getGreetingInfo(hour: number) {
   return { greeting: "Good night", Icon: Moon, gradient: "from-indigo-500/15 via-rose-500/10 to-transparent", accent: "text-indigo-400", dot: "bg-indigo-400" };
 }
 
-const activityIcons: Record<string, { icon: typeof CloudIcon; color: string; bg: string }> = {
-  sync: { icon: CloudIcon, color: "text-blue-400", bg: "bg-blue-500/10" },
-  approve: { icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10" },
-  post: { icon: SendIcon, color: "text-rose-400", bg: "bg-rose-500/10" },
-  tag: { icon: TagIcon, color: "text-purple-400", bg: "bg-purple-500/10" },
-};
-
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
-  const [stats, setStats] = useState<PhotoStats>(mockPhotoStats);
-  const [settings, setSettings] = useState<Settings>(mockSettings);
-  const [nextPin, setNextPin] = useState<ScheduledPin | null>(mockScheduledPins[0] || null);
+  const [stats, setStats] = useState<PhotoStats>({ new: 0, tagged: 0, approved: 0, scheduled: 0, posted: 0, skipped: 0 });
+  const [settings, setSettings] = useState<Settings>({ drive_folder_id: null, posting_interval_hours: 24, default_post_time: "10:00", google_connected: false, pinterest_connected: false });
+  const [nextPin, setNextPin] = useState<ScheduledPin | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [editInterval, setEditInterval] = useState(String(mockSettings.posting_interval_hours));
-  const [editTime, setEditTime] = useState(mockSettings.default_post_time);
+  const [editInterval, setEditInterval] = useState("24");
+  const [editTime, setEditTime] = useState("10:00");
   const [now, setNow] = useState(new Date());
+  const [hasBoardMappings, setHasBoardMappings] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -95,6 +75,12 @@ export default function Dashboard() {
         .then((r) => {
           const upcoming = r.data.pins?.filter((p: ScheduledPin) => !p.posted_at);
           if (upcoming?.length) setNextPin(upcoming[0]);
+        })
+        .catch(() => {}),
+      getBoardMappings()
+        .then((r) => {
+          const mappings = Array.isArray(r.data) ? r.data : [];
+          setHasBoardMappings(mappings.some((m: { board_id?: string | null }) => m.board_id));
         })
         .catch(() => {}),
     ]);
@@ -169,6 +155,50 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {(() => {
+        const checks = [
+          { label: "Connect Google Drive", done: settings.google_connected },
+          { label: "Set Drive Folder ID", done: !!settings.drive_folder_id },
+          { label: "Connect Pinterest", done: settings.pinterest_connected },
+          { label: "Map Board IDs", done: hasBoardMappings },
+        ];
+        const doneCount = checks.filter((c) => c.done).length;
+        if (doneCount < 4) {
+          return (
+            <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-setup-checklist">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-zinc-100">Setup Progress ({doneCount}/{checks.length} complete)</h2>
+                <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs no-default-active-elevate">{Math.round((doneCount / checks.length) * 100)}%</Badge>
+              </div>
+              <Progress value={(doneCount / checks.length) * 100} className="h-2 bg-zinc-800 mb-4 [&>div]:bg-gradient-to-r [&>div]:from-rose-500 [&>div]:to-pink-500" />
+              <div className="space-y-2">
+                {checks.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      {item.done ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border-2 border-zinc-700" />
+                      )}
+                      <span className={`text-sm ${item.done ? "text-zinc-400 line-through" : "text-zinc-200"}`}>{item.label}</span>
+                    </div>
+                    {!item.done && (
+                      <Link href="/settings">
+                        <Button variant="ghost" size="sm" className="text-xs text-rose-400 h-7 px-2">
+                          Go to Settings
+                          <ArrowRight className="h-3 w-3 ml-1" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          );
+        }
+        return null;
+      })()}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
@@ -290,25 +320,12 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-zinc-400" />
             <h2 className="text-sm font-semibold text-zinc-100 uppercase tracking-wide">Recent Activity</h2>
           </div>
-          <div className="space-y-1">
-            {mockActivityFeed.map((item, i) => {
-              const entry = activityIcons[item.type] || activityIcons.sync;
-              const Icon = entry.icon;
-              return (
-                <div key={item.id}>
-                  <div className="flex items-start gap-3 py-2">
-                    <div className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-md ${entry.bg} flex items-center justify-center`}>
-                      <Icon className={`h-3 w-3 ${entry.color}`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-zinc-300 truncate">{item.message}</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">{formatRelativeTime(item.time)}</p>
-                    </div>
-                  </div>
-                  {i < mockActivityFeed.length - 1 && <Separator className="bg-zinc-800/60" />}
-                </div>
-              );
-            })}
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-3">
+              <Clock className="h-5 w-5 text-zinc-600" />
+            </div>
+            <p className="text-sm text-zinc-500">No activity yet</p>
+            <p className="text-xs text-zinc-600 mt-1">Activity will appear here as you use AutoPin</p>
           </div>
         </Card>
       </div>

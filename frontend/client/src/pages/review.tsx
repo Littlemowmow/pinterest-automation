@@ -11,8 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ImageIcon, Sparkles, Check, X, Loader2, CloudDownload, AlertTriangle, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getPhotos, updatePhoto, generateTags, updateTags, addToQueue, syncPhotos, bulkAddToQueue } from "@/lib/api";
-import { mockPhotos, BOARD_CATEGORIES } from "@/lib/mock-data";
 import type { Photo } from "@/lib/types";
+import { BOARD_CATEGORIES } from "@/lib/types";
 
 export default function Review() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -35,7 +35,8 @@ export default function Review() {
       const list = Array.isArray(photos) ? photos : [];
       setPhotos(list.filter((p: Photo) => p.status === "tagged" || p.status === "new"));
     } catch {
-      setPhotos(mockPhotos.filter((p) => p.status === "tagged" || p.status === "new"));
+      toast.error("Failed to load photos");
+      setPhotos([]);
     } finally {
       setLoading(false);
     }
@@ -48,9 +49,7 @@ export default function Review() {
       setPhotos((prev) => prev.map((p) => (p.id === photoId ? { ...p, tags: res.data.tags || p.tags } : p)));
       toast.success("Tags generated");
     } catch {
-      const fakeTags = ["aesthetic", "inspiration", "trending", "beautiful"];
-      setPhotos((prev) => prev.map((p) => (p.id === photoId ? { ...p, tags: [...new Set([...p.tags, ...fakeTags])] } : p)));
-      toast.success("Tags generated");
+      toast.error("Failed to generate tags");
     } finally {
       setGeneratingTags((s) => { const n = new Set(s); n.delete(photoId); return n; });
     }

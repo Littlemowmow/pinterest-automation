@@ -14,12 +14,11 @@ import {
   getSettings, updateSettings, getBoardMappings, updateBoardMapping, fetchPinterestBoards,
   getGoogleAuthUrl, getPinterestAuthUrl, disconnectGoogle, disconnectPinterest,
 } from "@/lib/api";
-import { mockSettings, mockBoardMappings } from "@/lib/mock-data";
 import type { Settings, BoardMapping } from "@/lib/types";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>(mockSettings);
-  const [mappings, setMappings] = useState<BoardMapping[]>(mockBoardMappings);
+  const [settings, setSettings] = useState<Settings>({ drive_folder_id: null, posting_interval_hours: 24, default_post_time: "10:00", google_connected: false, pinterest_connected: false });
+  const [mappings, setMappings] = useState<BoardMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [savingFolder, setSavingFolder] = useState(false);
@@ -41,9 +40,7 @@ export default function SettingsPage() {
       setEditTime(settingsRes.data.default_post_time);
       setEditFolderId(settingsRes.data.drive_folder_id || "");
     } catch {
-      setEditInterval(String(mockSettings.posting_interval_hours));
-      setEditTime(mockSettings.default_post_time);
-      setEditFolderId(mockSettings.drive_folder_id || "");
+      toast.error("Failed to load settings");
     } finally {
       setLoading(false);
     }

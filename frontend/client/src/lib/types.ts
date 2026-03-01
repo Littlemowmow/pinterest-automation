@@ -63,3 +63,5 @@ export interface QueueResponse {
   next_post: string | null;
   is_paused: boolean;
 }
+
+export const BOARD_CATEGORIES = ['henna', 'bridal', 'nails', 'floral', 'mehndi', 'desi', 'outfits', 'neutral'] as const;

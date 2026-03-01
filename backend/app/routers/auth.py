@@ -114,10 +114,10 @@ async def pinterest_authorize():
         "response_type": "code",
         "client_id": settings.pinterest_app_id,
         "redirect_uri": settings.pinterest_redirect_uri,
-        "scope": "boards:read,pins:read,pins:write",
+        "scope": "boards:read pins:read pins:write",
         "state": "pinterest_auth",
     }
-    auth_url = f"https://api.pinterest.com/oauth/?{urlencode(params)}"
+    auth_url = f"https://www.pinterest.com/oauth/?{urlencode(params)}"
     return RedirectResponse(auth_url)
 
 

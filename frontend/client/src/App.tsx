@@ -1,4 +1,5 @@
-import { Switch, Route, useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as SonnerToaster } from "sonner";
@@ -11,6 +12,9 @@ import Review from "@/pages/review";
 import Queue from "@/pages/queue";
 import SettingsPage from "@/pages/settings";
 import Privacy from "@/pages/privacy";
+import Onboarding from "@/pages/onboarding";
+import Login from "@/pages/login";
+import { getSettings } from "@/lib/api";
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -30,7 +34,7 @@ function TopBar() {
   );
 }
 
-function Router() {
+function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
@@ -48,21 +52,78 @@ const sidebarStyle = {
   "--sidebar-width-icon": "3rem",
 };
 
+function AppShell() {
+  return (
+    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+      <div className="flex h-screen w-full bg-zinc-950 overflow-hidden">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 min-w-0">
+          <TopBar />
+          <main className="flex-1 overflow-y-auto p-5 lg:p-7">
+            <AppRouter />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+function AuthenticatedApp() {
+  const [location] = useLocation();
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (location === "/onboarding" || location === "/privacy") {
+      setNeedsOnboarding(false);
+      return;
+    }
+
+    if (localStorage.getItem("onboarding_complete") === "true") {
+      setNeedsOnboarding(false);
+      return;
+    }
+
+    getSettings()
+      .then((res) => {
+        const s = res.data;
+        const isSetup = s.google_connected || s.pinterest_connected || s.drive_folder_id;
+        if (isSetup) {
+          localStorage.setItem("onboarding_complete", "true");
+          setNeedsOnboarding(false);
+        } else {
+          setNeedsOnboarding(true);
+        }
+      })
+      .catch(() => {
+        setNeedsOnboarding(false);
+      });
+  }, [location]);
+
+  return (
+    <Switch>
+      <Route path="/onboarding" component={Onboarding} />
+      <Route>
+        {needsOnboarding === true ? (
+          <Redirect to="/onboarding" />
+        ) : (
+          <AppShell />
+        )}
+      </Route>
+    </Switch>
+  );
+}
+
 function App() {
+  const [authed, setAuthed] = useState(() => localStorage.getItem("authed") === "true");
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full bg-zinc-950 overflow-hidden">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 min-w-0">
-              <TopBar />
-              <main className="flex-1 overflow-y-auto p-5 lg:p-7">
-                <Router />
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        {authed ? (
+          <AuthenticatedApp />
+        ) : (
+          <Login onSuccess={() => setAuthed(true)} />
+        )}
         <SonnerToaster
           position="bottom-right"
           duration={4000}
