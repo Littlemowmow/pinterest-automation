@@ -269,8 +269,7 @@ export default function Onboarding() {
                 You are the ONLY user on this entire site.
               </p>
               <p className="text-zinc-400 text-sm leading-relaxed max-w-sm mx-auto">
-                That's right — this whole app was built just for you. No other users. No waitlist.
-                No "we'll get back to you." Just you. VIP status: confirmed.
+                No other users. No waitlist. No "we'll get back to you." Just you. VIP status: confirmed.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
