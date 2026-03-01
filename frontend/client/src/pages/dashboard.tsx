@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,37 @@ import { getBoardMappings } from "@/lib/api";
 import { toast } from "sonner";
 import { syncPhotos, getPhotoStats, getSettings, getQueue, updateSettings } from "@/lib/api";
 import type { PhotoStats, Settings, ScheduledPin } from "@/lib/types";
+
+function AnimatedCounter({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  const prevValue = useRef(0);
+  useEffect(() => {
+    const start = prevValue.current;
+    const end = value;
+    if (start === end) return;
+    const duration = 600;
+    const startTime = performance.now();
+    function step(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(start + (end - start) * eased));
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+    prevValue.current = end;
+  }, [value]);
+  return <>{display}</>;
+}
+
+const staggerContainer = {
+  animate: { transition: { staggerChildren: 0.05 } },
+};
+
+const fadeUpItem = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
+};
 
 function formatScheduledTime(dateStr: string | null) {
   if (!dateStr) return "Not scheduled";
@@ -127,7 +159,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className={`relative rounded-2xl bg-gradient-to-r ${gradient} border border-zinc-800/60 p-6 overflow-hidden`}>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+        className={`relative rounded-2xl bg-gradient-to-r ${gradient} border border-zinc-800/60 p-6 overflow-hidden gradient-shift-bg`}
+      >
         <div className="absolute inset-0 bg-zinc-900/60" />
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
@@ -155,7 +192,7 @@ export default function Dashboard() {
             <span className="ml-2">Sync from Drive</span>
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {(() => {
         const checks = [
@@ -167,12 +204,16 @@ export default function Dashboard() {
         const doneCount = checks.filter((c) => c.done).length;
         if (doneCount < 4) {
           return (
-            <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-setup-checklist">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+            <Card className="glass border-zinc-800/60 p-5" data-testid="card-setup-checklist">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-zinc-100">Setup Progress ({doneCount}/{checks.length} complete)</h2>
                 <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs no-default-active-elevate">{Math.round((doneCount / checks.length) * 100)}%</Badge>
               </div>
-              <Progress value={(doneCount / checks.length) * 100} className="h-2 bg-zinc-800 mb-4 [&>div]:bg-gradient-to-r [&>div]:from-rose-500 [&>div]:to-pink-500" />
+              <div className="relative">
+                <Progress value={(doneCount / checks.length) * 100} className="h-2 bg-zinc-800 mb-4 [&>div]:bg-gradient-to-r [&>div]:from-rose-500 [&>div]:to-pink-500" />
+                <div className="absolute inset-0 h-2 rounded-full shimmer-bg" />
+              </div>
               <div className="space-y-2">
                 {checks.map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
@@ -196,29 +237,37 @@ export default function Dashboard() {
                 ))}
               </div>
             </Card>
+            </motion.div>
           );
         }
         return null;
       })()}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+      >
         {statCards.map((card) => (
-          <Card
-            key={card.label}
-            className={`bg-zinc-900 ${card.border} p-5 shadow-lg ${card.glow} relative overflow-hidden group hover-elevate`}
-            data-testid={`card-stat-${card.label.toLowerCase().replace(/\s/g, "-")}`}
-          >
-            <div className={`absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r ${card.bar} opacity-60`} />
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`h-2 w-2 rounded-full ${card.dotColor}`} />
-              <span className="text-xs text-zinc-500 font-medium">{card.label}</span>
-            </div>
-            <p className={`text-4xl font-bold ${card.accent} leading-none tabular-nums`}>{card.value}</p>
-            <TrendingUp className={`h-3.5 w-3.5 ${card.accent} mt-2 opacity-50`} />
-          </Card>
+          <motion.div key={card.label} variants={fadeUpItem} whileHover={{ y: -2, transition: { duration: 0.2 } }}>
+            <Card
+              className={`bg-zinc-900 ${card.border} p-5 shadow-lg ${card.glow} relative overflow-hidden group transition-shadow duration-300 hover:shadow-xl`}
+              data-testid={`card-stat-${card.label.toLowerCase().replace(/\s/g, "-")}`}
+            >
+              <div className={`absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r ${card.bar} opacity-60`} />
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`h-2 w-2 rounded-full ${card.dotColor}`} />
+                <span className="text-xs text-zinc-500 font-medium">{card.label}</span>
+              </div>
+              <p className={`text-4xl font-bold ${card.accent} leading-none tabular-nums`}><AnimatedCounter value={card.value} /></p>
+              <TrendingUp className={`h-3.5 w-3.5 ${card.accent} mt-2 opacity-50`} />
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.25 }}>
       <Card className="bg-zinc-900 border-zinc-800 p-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -270,8 +319,15 @@ export default function Dashboard() {
           </Dialog>
         </div>
       </Card>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+      >
+        <motion.div variants={fadeUpItem} whileHover={{ y: -2 }}>
         <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-next-pin">
           <div className="flex items-center gap-2 mb-4">
             <Pin className="h-4 w-4 text-rose-400" />
@@ -315,7 +371,9 @@ export default function Dashboard() {
             </div>
           )}
         </Card>
+        </motion.div>
 
+        <motion.div variants={fadeUpItem} whileHover={{ y: -2 }}>
         <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-activity">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="h-4 w-4 text-zinc-400" />
@@ -329,7 +387,8 @@ export default function Dashboard() {
             <p className="text-xs text-zinc-600 mt-1">Activity will appear here as you use AutoPin</p>
           </div>
         </Card>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

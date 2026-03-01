@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ImageIcon, Sparkles, Check, X, Loader2, CloudDownload, AlertTriangle, Link as LinkIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { getPhotos, updatePhoto, generateTags, updateTags, addToQueue, syncPhotos, bulkAddToQueue } from "@/lib/api";
 import type { Photo } from "@/lib/types";
@@ -197,10 +198,19 @@ export default function Review() {
       </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {photos.map((photo) => (
-          <Card
+        <AnimatePresence mode="popLayout">
+        {photos.map((photo, index) => (
+          <motion.div
             key={photo.id}
-            className={`bg-zinc-900 border-zinc-800 p-0 transition-all duration-300 ${removingIds.has(photo.id) ? "opacity-0 scale-95" : "opacity-100"}`}
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.3, delay: index * 0.04, ease: [0.25, 0.1, 0.25, 1] }}
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          >
+          <Card
+            className="bg-zinc-900 border-zinc-800 p-0 transition-shadow duration-300 hover:shadow-lg hover:shadow-rose-500/5 hover:border-zinc-700"
             data-testid={`card-photo-${photo.id}`}
           >
             <div className="aspect-video bg-gradient-to-br from-zinc-800 to-zinc-850 rounded-t-lg flex items-center justify-center relative overflow-hidden">
@@ -257,7 +267,7 @@ export default function Review() {
                   size="sm"
                   onClick={() => handleGenerateTags(photo.id)}
                   disabled={generatingTags.has(photo.id)}
-                  className="bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0 h-8"
+                  className={`bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0 h-8 ${generatingTags.has(photo.id) ? "shimmer-bg" : ""}`}
                   data-testid={`button-generate-tags-${photo.id}`}
                 >
                   {generatingTags.has(photo.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -307,7 +317,9 @@ export default function Review() {
               </div>
             </div>
           </Card>
+          </motion.div>
         ))}
+        </AnimatePresence>
       </div>
     </div>
   );

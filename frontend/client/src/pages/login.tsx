@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Zap, Lock, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const SITE_PASSWORD = "Sabira1998";
 
@@ -31,10 +32,15 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <Card className="bg-zinc-900 border-zinc-800 p-8 w-full max-w-sm space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center p-4 gradient-shift-bg">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25, duration: 0.4 }}
+      >
+      <Card className="glass border-zinc-800/60 p-8 w-full max-w-sm space-y-6 shadow-2xl">
         <div className="flex flex-col items-center space-y-3">
-          <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30">
+          <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 shadow-lg glow-rose gradient-shift-bg">
             <Zap className="h-7 w-7 text-white" fill="white" />
           </div>
           <div className="text-center">
@@ -54,23 +60,30 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(false); }}
                 placeholder="Password"
-                className={`bg-zinc-800 border-zinc-700 text-zinc-100 pl-10 h-11 ${error ? "border-red-500/50 focus-visible:ring-red-500/30" : ""}`}
+                className={`bg-zinc-800 border-zinc-700 text-zinc-100 pl-10 h-11 transition-shadow duration-300 focus:shadow-[0_0_0_3px_rgba(244,63,94,0.15)] ${error ? "border-red-500/50 focus-visible:ring-red-500/30" : ""}`}
                 autoFocus
               />
             </div>
             {error && (
-              <p className="text-xs text-red-400 pl-1">Incorrect password. Try again.</p>
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs text-red-400 pl-1"
+              >
+                Incorrect password. Try again.
+              </motion.p>
             )}
           </div>
           <Button
             type="submit"
             disabled={checking || !password}
-            className="w-full bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30 h-11"
+            className="w-full bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30 h-11 transition-shadow duration-300 hover:shadow-xl hover:shadow-rose-500/40"
           >
             {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enter"}
           </Button>
         </form>
       </Card>
+      </motion.div>
     </div>
   );
 }

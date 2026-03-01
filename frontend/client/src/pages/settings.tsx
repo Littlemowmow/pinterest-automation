@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { ExternalLink, Loader2, Save, RefreshCw, CheckCircle, XCircle, FolderOpen, Sliders } from "lucide-react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   getSettings, updateSettings, getBoardMappings, updateBoardMapping, fetchPinterestBoards,
@@ -113,13 +114,14 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <h1 className="text-2xl font-bold text-zinc-100" data-testid="text-settings-title">Settings</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Manage your integrations and posting preferences</p>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-google">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
+        <Card className="glass border-zinc-800/60 p-5" data-testid="card-google">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
               <FolderOpen className="h-4 w-4 text-blue-400" />
@@ -133,7 +135,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               {settings.google_connected ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-green-500 status-dot-pulse" />
               ) : (
                 <XCircle className="h-4 w-4 text-red-400" />
               )}
@@ -173,8 +175,10 @@ export default function SettingsPage() {
             </div>
           </div>
         </Card>
+        </motion.div>
 
-        <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-pinterest">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+        <Card className="glass border-zinc-800/60 p-5" data-testid="card-pinterest">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
               <span className="text-rose-400 text-sm font-bold">P</span>
@@ -187,7 +191,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {settings.pinterest_connected ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-green-500 status-dot-pulse" />
               ) : (
                 <XCircle className="h-4 w-4 text-red-400" />
               )}
@@ -209,8 +213,10 @@ export default function SettingsPage() {
             )}
           </div>
         </Card>
+        </motion.div>
       </div>
 
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
       <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-posting">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
@@ -246,7 +252,9 @@ export default function SettingsPage() {
           <span className="ml-2">Save Schedule</span>
         </Button>
       </Card>
+      </motion.div>
 
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
       <Card className="bg-zinc-900 border-zinc-800 p-5" data-testid="card-board-mappings">
         <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
           <div>
@@ -271,7 +279,7 @@ export default function SettingsPage() {
             </TableHeader>
             <TableBody>
               {mappings.map((m) => (
-                <TableRow key={m.category} className="border-zinc-800/60" data-testid={`row-mapping-${m.category}`}>
+                <TableRow key={m.category} className="border-zinc-800/60 transition-colors hover:bg-white/[0.02]" data-testid={`row-mapping-${m.category}`}>
                   <TableCell>
                     <span className="text-sm font-semibold text-zinc-200 capitalize">{m.category}</span>
                   </TableCell>
@@ -295,6 +303,7 @@ export default function SettingsPage() {
           </Table>
         </div>
       </Card>
+      </motion.div>
     </div>
   );
 }

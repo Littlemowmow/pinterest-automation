@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
+import { AnimatePresence, motion } from "framer-motion";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as SonnerToaster } from "sonner";
@@ -34,16 +35,44 @@ function TopBar() {
   );
 }
 
-function AppRouter() {
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+
+const pageTransition = {
+  duration: 0.15,
+  ease: [0.25, 0.1, 0.25, 1],
+};
+
+function AnimatedPage({ children }: { children: React.ReactNode }) {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/review" component={Review} />
-      <Route path="/queue" component={Queue} />
-      <Route path="/settings" component={SettingsPage} />
-      <Route path="/privacy" component={Privacy} />
-      <Route component={NotFound} />
-    </Switch>
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={pageTransition}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function AppRouter() {
+  const [location] = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Switch key={location}>
+        <Route path="/">{() => <AnimatedPage><Dashboard /></AnimatedPage>}</Route>
+        <Route path="/review">{() => <AnimatedPage><Review /></AnimatedPage>}</Route>
+        <Route path="/queue">{() => <AnimatedPage><Queue /></AnimatedPage>}</Route>
+        <Route path="/settings">{() => <AnimatedPage><SettingsPage /></AnimatedPage>}</Route>
+        <Route path="/privacy">{() => <AnimatedPage><Privacy /></AnimatedPage>}</Route>
+        <Route>{() => <AnimatedPage><NotFound /></AnimatedPage>}</Route>
+      </Switch>
+    </AnimatePresence>
   );
 }
 

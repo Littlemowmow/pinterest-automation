@@ -12,6 +12,7 @@ import {
   Zap, ArrowRight, ArrowLeft, ExternalLink, CheckCircle, XCircle, FolderOpen,
   Loader2, Sparkles, PartyPopper, Clock, Crown, User, Cake,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { getSettings, updateSettings, getGoogleAuthUrl, getPinterestAuthUrl } from "@/lib/api";
 import type { Settings } from "@/lib/types";
@@ -164,7 +165,7 @@ export default function Onboarding() {
 
   // Trigger welcome confetti on mount
   useEffect(() => {
-    const timer = setTimeout(() => setShowWelcomeConfetti(true), 300);
+    const timer = setTimeout(() => setShowWelcomeConfetti(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -236,7 +237,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center p-4 gradient-shift-bg">
       {showWelcomeConfetti && step === 0 && <ConfettiCanvas key="welcome" />}
       {showBirthdayConfetti && <ConfettiCanvas key="birthday" />}
       {showFinishConfetti && <ConfettiCanvas key="finish" />}
@@ -247,12 +248,16 @@ export default function Onboarding() {
             <span>Step {step + 1} of {STEPS.length}</span>
             <span>{STEPS[step]}</span>
           </div>
-          <Progress value={progress} className="h-2 bg-zinc-800 [&>div]:bg-gradient-to-r [&>div]:from-rose-500 [&>div]:to-pink-500" />
+          <div className="relative">
+            <Progress value={progress} className="h-2 bg-zinc-800 [&>div]:bg-gradient-to-r [&>div]:from-rose-500 [&>div]:to-pink-500 [&>div]:transition-all [&>div]:duration-500 [&>div]:ease-out" />
+          </div>
         </div>
 
+        <AnimatePresence mode="wait">
         {/* Step 0: Welcome — "Only user" celebration */}
         {step === 0 && (
-          <Card className="bg-zinc-900 border-zinc-800 p-8 text-center space-y-6">
+          <motion.div key="step-0" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-8 text-center space-y-6">
             <div className="flex justify-center">
               <div className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30 animate-bounce">
                 <Crown className="h-10 w-10 text-white" />
@@ -281,11 +286,13 @@ export default function Onboarding() {
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Card>
+          </motion.div>
         )}
 
         {/* Step 1: Name */}
         {step === 1 && (
-          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+          <motion.div key="step-1" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
                 <User className="h-5 w-5 text-purple-400" />
@@ -322,11 +329,13 @@ export default function Onboarding() {
               </Button>
             </div>
           </Card>
+          </motion.div>
         )}
 
         {/* Step 2: Birthday */}
         {step === 2 && (
-          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+          <motion.div key="step-2" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-6 space-y-5">
             {showBirthdayConfetti ? (
               <div className="text-center space-y-4 py-8">
                 <div className="flex justify-center">
@@ -408,11 +417,13 @@ export default function Onboarding() {
               </>
             )}
           </Card>
+          </motion.div>
         )}
 
         {/* Step 3: Google Drive */}
         {step === 3 && (
-          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+          <motion.div key="step-3" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                 <FolderOpen className="h-5 w-5 text-blue-400" />
@@ -476,11 +487,13 @@ export default function Onboarding() {
               </Button>
             </div>
           </Card>
+          </motion.div>
         )}
 
         {/* Step 4: Pinterest */}
         {step === 4 && (
-          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+          <motion.div key="step-4" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
                 <span className="text-rose-400 text-lg font-bold">P</span>
@@ -530,11 +543,13 @@ export default function Onboarding() {
               </Button>
             </div>
           </Card>
+          </motion.div>
         )}
 
         {/* Step 5: Configure */}
         {step === 5 && (
-          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+          <motion.div key="step-5" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-6 space-y-5">
             {showFinishConfetti ? (
               <div className="text-center space-y-4 py-8">
                 <div className="flex justify-center">
@@ -622,7 +637,9 @@ export default function Onboarding() {
               </>
             )}
           </Card>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );

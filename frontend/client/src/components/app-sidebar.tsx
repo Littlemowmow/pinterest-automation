@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Zap, LayoutDashboard, Image, ListOrdered, Settings2, Moon, Sun, Sunrise, Sunset } from "lucide-react";
 import { useLocation, Link } from "wouter";
+import { motion } from "framer-motion";
 import {
   Sidebar,
   SidebarContent,
@@ -56,10 +57,10 @@ export function AppSidebar() {
   });
 
   return (
-    <Sidebar>
+    <Sidebar className="glass">
       <SidebarHeader className="px-4 py-5">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 shadow-lg shadow-rose-500/30 gradient-shift-bg glow-rose">
             <Zap className="h-4 w-4 text-white" fill="white" />
           </div>
           <div>
@@ -67,7 +68,7 @@ export function AppSidebar() {
               AutoPin
             </span>
             <div className="flex items-center gap-1 mt-0.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              <div className="h-1.5 w-1.5 rounded-full bg-green-500 status-dot-pulse" />
               <span className="text-[10px] text-zinc-500 font-medium tracking-wide uppercase">Live</span>
             </div>
           </div>
@@ -82,20 +83,22 @@ export function AppSidebar() {
                 const isActive = location === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      data-active={isActive}
-                      className={
-                        isActive
-                          ? "bg-rose-500/15 text-rose-400 border border-rose-500/20"
-                          : "text-zinc-500 border border-transparent"
-                      }
-                    >
-                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase()}`} className="flex items-center gap-3 px-3 py-2 rounded-lg">
-                        <item.icon className={`h-4 w-4 ${isActive ? "text-rose-400" : "text-zinc-500"}`} />
-                        <span className={`text-sm font-medium ${isActive ? "text-rose-400" : "text-zinc-400"}`}>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <motion.div whileHover={{ x: 2 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
+                      <SidebarMenuButton
+                        asChild
+                        data-active={isActive}
+                        className={
+                          isActive
+                            ? "bg-rose-500/15 text-rose-400 border border-rose-500/20 shadow-[inset_2px_0_0_0_rgb(244_63_94)] shadow-rose-500"
+                            : "text-zinc-500 border border-transparent hover:bg-white/[0.03]"
+                        }
+                      >
+                        <Link href={item.url} data-testid={`nav-${item.title.toLowerCase()}`} className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200">
+                          <item.icon className={`h-4 w-4 ${isActive ? "text-rose-400" : "text-zinc-500"}`} />
+                          <span className={`text-sm font-medium ${isActive ? "text-rose-400" : "text-zinc-400"}`}>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </motion.div>
                   </SidebarMenuItem>
                 );
               })}
@@ -105,7 +108,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="px-4 py-4">
-        <div className="rounded-xl bg-zinc-900/80 border border-zinc-800 p-3 space-y-2">
+        <div className="rounded-xl glass border border-zinc-800/80 p-3 space-y-2" style={{ animation: "glow-pulse 4s ease-in-out infinite", boxShadow: "0 0 15px rgba(244, 63, 94, 0.06)" }}>
           <div className="flex items-center gap-2">
             <GreetingIcon className={`h-3.5 w-3.5 ${greetingColor} flex-shrink-0`} />
             <span className={`text-xs font-semibold ${greetingColor}`}>{greetingText}{userName ? `, ${userName}` : ""}</span>

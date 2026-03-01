@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { GripVertical, ImageIcon, Trash2, CheckCircle2, Loader2, Clock, AlertTriangle, PauseCircle, PlayCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -219,46 +220,67 @@ export default function Queue() {
         </TabsList>
       </Tabs>
 
+      <AnimatePresence mode="wait">
       {tab === "upcoming" && (
-        upcomingPins.length === 0 ? (
-          <Card className="bg-zinc-900 border-zinc-800 p-16">
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
-                <ImageIcon className="h-6 w-6 text-zinc-600" />
+        <motion.div key="upcoming" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+          {upcomingPins.length === 0 ? (
+            <Card className="bg-zinc-900 border-zinc-800 p-16">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
+                  <ImageIcon className="h-6 w-6 text-zinc-600" />
+                </div>
+                <p className="text-base font-medium text-zinc-400 mb-1">Queue is empty</p>
+                <p className="text-sm text-zinc-600">Approve photos in Review to start scheduling</p>
               </div>
-              <p className="text-base font-medium text-zinc-400 mb-1">Queue is empty</p>
-              <p className="text-sm text-zinc-600">Approve photos in Review to start scheduling</p>
-            </div>
-          </Card>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={upcomingPins.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {upcomingPins.map((pin) => (
-                  <SortableRow key={pin.id} pin={pin} onDelete={setDeleteId} />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )
+            </Card>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={upcomingPins.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  <AnimatePresence mode="popLayout">
+                  {upcomingPins.map((pin, index) => (
+                    <motion.div
+                      key={pin.id}
+                      layout
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 40, transition: { duration: 0.2 } }}
+                      transition={{ duration: 0.25, delay: index * 0.03 }}
+                    >
+                      <SortableRow pin={pin} onDelete={setDeleteId} />
+                    </motion.div>
+                  ))}
+                  </AnimatePresence>
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </motion.div>
       )}
 
       {tab === "posted" && (
-        postedPins.length === 0 ? (
-          <Card className="bg-zinc-900 border-zinc-800 p-16">
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
-                <CheckCircle2 className="h-6 w-6 text-zinc-600" />
+        <motion.div key="posted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+          {postedPins.length === 0 ? (
+            <Card className="bg-zinc-900 border-zinc-800 p-16">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
+                  <CheckCircle2 className="h-6 w-6 text-zinc-600" />
+                </div>
+                <p className="text-base font-medium text-zinc-400">No posted pins yet</p>
               </div>
-              <p className="text-base font-medium text-zinc-400">No posted pins yet</p>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {postedPins.map((pin, index) => (
+                <motion.div key={pin.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.03 }}>
+                  <PostedRow pin={pin} />
+                </motion.div>
+              ))}
             </div>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {postedPins.map((pin) => <PostedRow key={pin.id} pin={pin} />)}
-          </div>
-        )
+          )}
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent className="bg-zinc-900 border-zinc-800">
