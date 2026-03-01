@@ -143,6 +143,14 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  // ?reset in URL clears all state and restarts from login
+  if (window.location.search.includes("reset")) {
+    localStorage.clear();
+    window.history.replaceState({}, "", "/");
+    window.location.reload();
+    return null;
+  }
+
   const [authed, setAuthed] = useState(() => localStorage.getItem("authed") === "true");
 
   return (
