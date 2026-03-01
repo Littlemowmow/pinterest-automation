@@ -166,10 +166,10 @@ export default function Onboarding() {
   const progress = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center p-4 gradient-shift-bg">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center p-6 gradient-shift-bg">
       {showWelcomeConfetti && step === 0 && <ConfettiCanvas key="welcome" />}
       {showBirthdayConfetti && <ConfettiCanvas key="birthday" />}
-      <div className="w-full max-w-lg space-y-6">
+      <div className="w-full max-w-xl space-y-6">
         {/* Progress */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-500">
@@ -185,18 +185,18 @@ export default function Onboarding() {
         {/* Step 0: Welcome */}
         {step === 0 && (
           <motion.div key="step-0" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-8 text-center space-y-6">
+          <Card className="glass border-zinc-800/60 p-10 text-center space-y-7">
             <div className="flex justify-center">
               <div className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30 animate-bounce">
                 <Crown className="h-10 w-10 text-white" />
               </div>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <h1 className="text-3xl font-bold text-zinc-100">Congratulations!</h1>
               <p className="text-lg text-rose-400 font-semibold">
                 You are the ONLY user on this entire site.
               </p>
-              <p className="text-zinc-400 text-sm leading-relaxed max-w-sm mx-auto">
+              <p className="text-zinc-400 text-base leading-relaxed max-w-md mx-auto">
                 No other users. No waitlist. No "we'll get back to you." Just you. VIP status: confirmed.
               </p>
             </div>
@@ -219,14 +219,14 @@ export default function Onboarding() {
         {/* Step 1: Name */}
         {step === 1 && (
           <motion.div key="step-1" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                <User className="h-5 w-5 text-purple-400" />
+          <Card className="glass border-zinc-800/60 p-8 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                <User className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-zinc-100">What's your name?</h2>
-                <p className="text-xs text-zinc-500">So we can properly address our one and only user</p>
+                <h2 className="text-xl font-bold text-zinc-100">What's your name?</h2>
+                <p className="text-sm text-zinc-500">So we can properly address our one and only user</p>
               </div>
             </div>
 
@@ -262,35 +262,35 @@ export default function Onboarding() {
         {/* Step 2: Birthday */}
         {step === 2 && (
           <motion.div key="step-2" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-6 space-y-5">
+          <Card className="glass border-zinc-800/60 p-8 space-y-6">
             {showBirthdayConfetti ? (
-              <div className="text-center space-y-4 py-8">
+              <div className="text-center space-y-5 py-10">
                 <div className="flex justify-center">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/30 animate-bounce">
                     <PartyPopper className="h-8 w-8 text-white" />
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-zinc-100">Happy Birthday, {userName}!</h2>
-                <p className="text-zinc-400 text-sm">Taking you to your dashboard...</p>
+                <p className="text-zinc-400 text-base">Taking you to your dashboard...</p>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
-                    <Cake className="h-5 w-5 text-pink-400" />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+                    <Cake className="h-6 w-6 text-pink-400" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-zinc-100">One more thing, {userName}...</h2>
-                    <p className="text-xs text-zinc-500">For totally legitimate security purposes</p>
+                    <h2 className="text-xl font-bold text-zinc-100">One more thing, {userName}...</h2>
+                    <p className="text-sm text-zinc-500">For totally legitimate security purposes</p>
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-4">
-                  <p className="text-sm text-zinc-300 leading-relaxed">
+                <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-5">
+                  <p className="text-base text-zinc-300 leading-relaxed">
                     We need to verify your identity using the most advanced security protocol known to mankind:
                     <span className="text-rose-400 font-semibold"> your birthday.</span>
                   </p>
-                  <p className="text-xs text-zinc-600 mt-2">(Don't even think about lying. We'll know. But go ahead, try a fake one.)</p>
+                  <p className="text-sm text-zinc-500 mt-3">(Don't even think about lying. We'll know. But go ahead, try a fake one.)</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -350,24 +350,24 @@ export default function Onboarding() {
         {/* Step 3: Warning message */}
         {step === 3 && (
           <motion.div key="step-3" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <span className="text-xl">😅</span>
+          <Card className="glass border-zinc-800/60 p-8 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <span className="text-2xl">😅</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-zinc-100">One more thing...</h2>
+                <h2 className="text-xl font-bold text-zinc-100">One more thing...</h2>
               </div>
             </div>
 
-            <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-4 space-y-3">
-              <p className="text-sm text-zinc-300 leading-relaxed">
+            <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-5 space-y-4">
+              <p className="text-base text-zinc-300 leading-relaxed">
                 Hey ok so this is kinda awkward 😅 the Google Drive and Pinterest forms are waiting to be approved from Google and Pinterest so at the moment....this site is <span className="text-rose-400 font-bold">COMPLETELY USELESS</span>... but it will be fully functional soon and I think you'll really enjoy this once it's ready Insha'Allah.
               </p>
-              <p className="text-sm text-zinc-300 leading-relaxed">
+              <p className="text-base text-zinc-300 leading-relaxed">
                 This took really long to make so I hope you at least enjoy the result 😊
               </p>
-              <p className="text-xs text-zinc-500 mt-3 italic">— message from the supreme leader CEO of AutoPin</p>
+              <p className="text-sm text-zinc-500 mt-3 italic">— message from the supreme leader CEO of AutoPin</p>
             </div>
 
             <Button
