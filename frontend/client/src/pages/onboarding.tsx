@@ -121,6 +121,7 @@ export default function Onboarding() {
   const [birthdayError, setBirthdayError] = useState("");
   const [showWelcomeConfetti, setShowWelcomeConfetti] = useState(false);
   const [showBirthdayConfetti, setShowBirthdayConfetti] = useState(false);
+  const isBelated = (() => { const now = new Date(); return now.getMonth() > 1 || (now.getMonth() === 1 && now.getDate() > 28); })();
 
   // Trigger welcome confetti on mount
   useEffect(() => {
@@ -270,7 +271,7 @@ export default function Onboarding() {
                     <PartyPopper className="h-8 w-8 text-white" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-zinc-100">Happy Birthday, {userName}!</h2>
+                <h2 className="text-2xl font-bold text-zinc-100">{isBelated ? `Looks like you missed your birthday gift on your day! Happy belated birthday, ${userName}!` : `Happy Birthday, ${userName}!`}</h2>
                 <p className="text-zinc-400 text-base">Taking you to your dashboard...</p>
               </div>
             ) : (
