@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-const STEPS = ["Welcome", "Your Name", "Birthday"];
+const STEPS = ["Welcome", "Your Name", "Birthday", "One More Thing"];
 
 function ConfettiCanvas() {
   useEffect(() => {
@@ -152,10 +152,15 @@ export default function Onboarding() {
     setShowBirthdayConfetti(true);
 
     setTimeout(() => {
-      localStorage.setItem("onboarding_complete", "true");
-      localStorage.setItem("show_tutorial", "true");
-      setLocation("/");
-    }, 4000);
+      setShowBirthdayConfetti(false);
+      setStep(3);
+    }, 3000);
+  }
+
+  function handleFinish() {
+    localStorage.setItem("onboarding_complete", "true");
+    localStorage.setItem("show_tutorial", "true");
+    setLocation("/");
   }
 
   const progress = ((step + 1) / STEPS.length) * 100;
@@ -338,6 +343,40 @@ export default function Onboarding() {
                 </div>
               </>
             )}
+          </Card>
+          </motion.div>
+        )}
+
+        {/* Step 3: Warning message */}
+        {step === 3 && (
+          <motion.div key="step-3" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
+          <Card className="glass border-zinc-800/60 p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <span className="text-xl">😅</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-zinc-100">One more thing...</h2>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-4 space-y-3">
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                Hey ok so this is kinda awkward 😅 the Google Drive and Pinterest forms are waiting to be approved from Google and Pinterest so at the moment....this site is <span className="text-rose-400 font-bold">COMPLETELY USELESS</span>... but it will be fully functional soon and I think you'll really enjoy this once it's ready Insha'Allah.
+              </p>
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                This took really long to make so I hope you at least enjoy the result 😊
+              </p>
+              <p className="text-xs text-zinc-500 mt-3 italic">— message from the supreme leader CEO of AutoPin</p>
+            </div>
+
+            <Button
+              onClick={handleFinish}
+              className="w-full bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30"
+            >
+              Take me to my useless dashboard
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </Card>
           </motion.div>
         )}
