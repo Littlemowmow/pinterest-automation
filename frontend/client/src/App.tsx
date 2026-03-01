@@ -133,7 +133,7 @@ function AuthenticatedApp() {
     <Switch>
       <Route path="/onboarding" component={Onboarding} />
       <Route>
-        {needsOnboarding === true ? (
+        {needsOnboarding === null ? null : needsOnboarding ? (
           <Redirect to="/onboarding" />
         ) : (
           <AppShell />
