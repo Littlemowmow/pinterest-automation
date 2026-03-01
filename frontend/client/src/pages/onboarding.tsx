@@ -290,7 +290,7 @@ export default function Onboarding() {
                     We need to verify your identity using the most advanced security protocol known to mankind:
                     <span className="text-rose-400 font-semibold"> your birthday.</span>
                   </p>
-                  <p className="text-xs text-zinc-600 mt-2">(Don't even think about lying. We'll know.)</p>
+                  <p className="text-xs text-zinc-600 mt-2">(Don't even think about lying. We'll know. But go ahead, try a fake one 😏)</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
