@@ -112,6 +112,7 @@ export default function Dashboard() {
   }
 
   const hour = now.getHours();
+  const userName = localStorage.getItem("user_name");
   const { greeting, Icon: GreetingIcon, gradient, accent, dot } = getGreetingInfo(hour);
 
   const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
@@ -132,7 +133,7 @@ export default function Dashboard() {
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <GreetingIcon className={`h-5 w-5 ${accent}`} />
-              <span className={`text-sm font-semibold ${accent} tracking-wide`}>{greeting}</span>
+              <span className={`text-sm font-semibold ${accent} tracking-wide`}>{greeting}{userName ? `, ${userName}` : ""}</span>
             </div>
             <h1 className="text-3xl font-bold text-zinc-100 leading-none" data-testid="text-welcome">
               Your board is growing

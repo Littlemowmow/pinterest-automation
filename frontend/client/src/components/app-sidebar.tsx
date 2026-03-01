@@ -39,6 +39,7 @@ export function AppSidebar() {
   }, []);
 
   const hour = now.getHours();
+  const userName = localStorage.getItem("user_name");
   const { text: greetingText, Icon: GreetingIcon, color: greetingColor } = getGreetingInfo(hour);
 
   const timeStr = now.toLocaleTimeString("en-US", {
@@ -107,7 +108,7 @@ export function AppSidebar() {
         <div className="rounded-xl bg-zinc-900/80 border border-zinc-800 p-3 space-y-2">
           <div className="flex items-center gap-2">
             <GreetingIcon className={`h-3.5 w-3.5 ${greetingColor} flex-shrink-0`} />
-            <span className={`text-xs font-semibold ${greetingColor}`}>{greetingText}</span>
+            <span className={`text-xs font-semibold ${greetingColor}`}>{greetingText}{userName ? `, ${userName}` : ""}</span>
           </div>
           <div className="font-mono text-lg font-bold text-zinc-100 tracking-wider tabular-nums leading-none" data-testid="text-live-time">
             {timeStr}

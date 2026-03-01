@@ -10,15 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Zap, ArrowRight, ArrowLeft, ExternalLink, CheckCircle, XCircle, FolderOpen,
-  Loader2, Sparkles, PartyPopper, Clock,
+  Loader2, Sparkles, PartyPopper, Clock, Crown, User, Cake,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getSettings, updateSettings, getGoogleAuthUrl, getPinterestAuthUrl } from "@/lib/api";
 import type { Settings } from "@/lib/types";
 
-const STEPS = ["Welcome", "Google Drive", "Pinterest", "Configure"];
+const STEPS = ["Welcome", "Your Name", "Birthday", "Google Drive", "Pinterest", "Configure"];
 
-function ConfettiCanvas() {
+function ConfettiCanvas({ key: canvasKey }: { key?: string }) {
   useEffect(() => {
     const canvas = document.getElementById("confetti-canvas") as HTMLCanvasElement;
     if (!canvas) return;
@@ -43,7 +43,6 @@ function ConfettiCanvas() {
     const particles: Particle[] = [];
     const shapes: Particle["shape"][] = ["rect", "circle", "star"];
 
-    // Burst from multiple points
     for (let burst = 0; burst < 5; burst++) {
       const bx = canvas.width * (0.2 + Math.random() * 0.6);
       const by = canvas.height * (0.2 + Math.random() * 0.3);
@@ -90,7 +89,6 @@ function ConfettiCanvas() {
           ctx!.arc(0, 0, p.w / 2, 0, Math.PI * 2);
           ctx!.fill();
         } else {
-          // star
           ctx!.beginPath();
           for (let s = 0; s < 5; s++) {
             const a = (s * 4 * Math.PI) / 5 - Math.PI / 2;
@@ -112,6 +110,7 @@ function ConfettiCanvas() {
   return (
     <canvas
       id="confetti-canvas"
+      key={canvasKey}
       className="fixed inset-0 pointer-events-none z-50"
     />
   );
@@ -127,13 +126,19 @@ export default function Onboarding() {
     google_connected: false,
     pinterest_connected: false,
   });
+  const [userName, setUserName] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [birthdayError, setBirthdayError] = useState("");
   const [folderId, setFolderId] = useState("");
   const [editInterval, setEditInterval] = useState("24");
   const [editTime, setEditTime] = useState("10:00");
   const [loading, setLoading] = useState(true);
   const [savingFolder, setSavingFolder] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [showWelcomeConfetti, setShowWelcomeConfetti] = useState(false);
+  const [showBirthdayConfetti, setShowBirthdayConfetti] = useState(false);
+  const [showFinishConfetti, setShowFinishConfetti] = useState(false);
 
   const refreshSettings = useCallback(async () => {
     try {
@@ -149,15 +154,48 @@ export default function Onboarding() {
     refreshSettings().finally(() => setLoading(false));
   }, [refreshSettings]);
 
-  // Poll for connection status changes (user may have just connected via OAuth redirect)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("google") === "connected" || params.get("pinterest") === "connected") {
       refreshSettings();
-      // Clean up URL
       window.history.replaceState({}, "", "/onboarding");
     }
   }, [refreshSettings]);
+
+  // Trigger welcome confetti on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setShowWelcomeConfetti(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  function handleNameSubmit() {
+    if (!userName.trim()) return;
+    localStorage.setItem("user_name", userName.trim());
+    setStep(2);
+  }
+
+  function handleBirthdaySubmit() {
+    const month = parseInt(birthMonth, 10);
+    const day = parseInt(birthDay, 10);
+
+    if (!birthMonth || !birthDay) {
+      setBirthdayError("Nice try... you gotta fill in both fields!");
+      return;
+    }
+    if (month !== 2 || day !== 28) {
+      setBirthdayError("Hmm that doesn't look right... are you sure that's YOUR birthday? Try again!");
+      return;
+    }
+
+    setBirthdayError("");
+    localStorage.setItem("user_birthday", `${month}-${day}`);
+    setShowBirthdayConfetti(true);
+
+    setTimeout(() => {
+      setStep(3);
+      setShowBirthdayConfetti(false);
+    }, 3000);
+  }
 
   async function handleSaveFolder() {
     setSavingFolder(true);
@@ -179,16 +217,12 @@ export default function Onboarding() {
     } catch {}
     setSavingConfig(false);
 
-    // Show confetti!
-    setShowConfetti(true);
-
-    // Mark onboarding complete
+    setShowFinishConfetti(true);
     localStorage.setItem("onboarding_complete", "true");
 
-    // Wait for confetti then redirect
     setTimeout(() => {
       setLocation("/");
-    }, 3500);
+    }, 4000);
   }
 
   const progress = ((step + 1) / STEPS.length) * 100;
@@ -203,7 +237,9 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      {showConfetti && <ConfettiCanvas />}
+      {showWelcomeConfetti && step === 0 && <ConfettiCanvas key="welcome" />}
+      {showBirthdayConfetti && <ConfettiCanvas key="birthday" />}
+      {showFinishConfetti && <ConfettiCanvas key="finish" />}
       <div className="w-full max-w-lg space-y-6">
         {/* Progress */}
         <div className="space-y-2">
@@ -214,38 +250,168 @@ export default function Onboarding() {
           <Progress value={progress} className="h-2 bg-zinc-800 [&>div]:bg-gradient-to-r [&>div]:from-rose-500 [&>div]:to-pink-500" />
         </div>
 
-        {/* Step 0: Welcome */}
+        {/* Step 0: Welcome — "Only user" celebration */}
         {step === 0 && (
           <Card className="bg-zinc-900 border-zinc-800 p-8 text-center space-y-6">
             <div className="flex justify-center">
-              <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30">
-                <Zap className="h-8 w-8 text-white" fill="white" />
+              <div className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30 animate-bounce">
+                <Crown className="h-10 w-10 text-white" />
               </div>
             </div>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-zinc-100">Welcome to AutoPin</h1>
+            <div className="space-y-3">
+              <h1 className="text-3xl font-bold text-zinc-100">Congratulations!</h1>
+              <p className="text-lg text-rose-400 font-semibold">
+                You are the ONLY user on this entire site.
+              </p>
               <p className="text-zinc-400 text-sm leading-relaxed max-w-sm mx-auto">
-                Automate your Pinterest posting pipeline. Connect Google Drive as your photo source,
-                tag and review images with AI, then schedule pins to your boards automatically.
+                That's right — this whole app was built just for you. No other users. No waitlist.
+                No "we'll get back to you." Just you. VIP status: confirmed.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
-              <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20 no-default-active-elevate">Google Drive Sync</Badge>
-              <Badge className="bg-purple-500/10 text-purple-400 border border-purple-500/20 no-default-active-elevate">AI Tagging</Badge>
-              <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 no-default-active-elevate">Auto Posting</Badge>
+              <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 no-default-active-elevate">Population: 1</Badge>
+              <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 no-default-active-elevate">VIP Access</Badge>
+              <Badge className="bg-purple-500/10 text-purple-400 border border-purple-500/20 no-default-active-elevate">Zero Competition</Badge>
             </div>
             <Button
               onClick={() => setStep(1)}
               className="bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30 px-8"
             >
-              Get Started
+              I Accept My Throne
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Card>
         )}
 
-        {/* Step 1: Google Drive */}
+        {/* Step 1: Name */}
         {step === 1 && (
+          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                <User className="h-5 w-5 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-zinc-100">What's your name?</h2>
+                <p className="text-xs text-zinc-500">So we can properly address our one and only user</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Input
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleNameSubmit(); }}
+                placeholder="Your name..."
+                className="bg-zinc-800 border-zinc-700 text-zinc-100 text-base h-12"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-between pt-2">
+              <Button variant="ghost" onClick={() => setStep(0)} className="text-zinc-500">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                onClick={handleNameSubmit}
+                disabled={!userName.trim()}
+                className="bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30"
+              >
+                That's me
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Step 2: Birthday */}
+        {step === 2 && (
+          <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
+            {showBirthdayConfetti ? (
+              <div className="text-center space-y-4 py-8">
+                <div className="flex justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/30 animate-bounce">
+                    <PartyPopper className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-zinc-100">Happy Birthday, {userName}!</h2>
+                <p className="text-zinc-400 text-sm">This app is your birthday present! Let's set it up.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+                    <Cake className="h-5 w-5 text-pink-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-zinc-100">One more thing, {userName}...</h2>
+                    <p className="text-xs text-zinc-500">For totally legitimate security purposes</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-4">
+                  <p className="text-sm text-zinc-300 leading-relaxed">
+                    We need to verify your identity using the most advanced security protocol known to mankind:
+                    <span className="text-rose-400 font-semibold"> your birthday.</span>
+                  </p>
+                  <p className="text-xs text-zinc-600 mt-2">(Don't even think about lying. We'll know.)</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-500 uppercase tracking-wide font-medium">Month</label>
+                    <Select value={birthMonth} onValueChange={(v) => { setBirthMonth(v); setBirthdayError(""); }}>
+                      <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-200">
+                        <SelectValue placeholder="Month" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
+                          <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-500 uppercase tracking-wide font-medium">Day</label>
+                    <Select value={birthDay} onValueChange={(v) => { setBirthDay(v); setBirthdayError(""); }}>
+                      <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-200">
+                        <SelectValue placeholder="Day" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {Array.from({ length: 31 }, (_, i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {birthdayError && (
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+                    <p className="text-xs text-red-400">{birthdayError}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-2">
+                  <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-500">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleBirthdaySubmit}
+                    className="bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30"
+                  >
+                    Verify Me
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+        )}
+
+        {/* Step 3: Google Drive */}
+        {step === 3 && (
           <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
@@ -300,11 +466,11 @@ export default function Onboarding() {
             </div>
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(0)} className="text-zinc-500">
+              <Button variant="ghost" onClick={() => setStep(2)} className="text-zinc-500">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Button onClick={() => setStep(2)} className="bg-zinc-800 text-zinc-200 border border-zinc-700">
+              <Button onClick={() => setStep(4)} className="bg-zinc-800 text-zinc-200 border border-zinc-700">
                 {settings.google_connected ? "Next" : "Skip for now"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -312,8 +478,8 @@ export default function Onboarding() {
           </Card>
         )}
 
-        {/* Step 2: Pinterest */}
-        {step === 2 && (
+        {/* Step 4: Pinterest */}
+        {step === 4 && (
           <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
@@ -349,17 +515,16 @@ export default function Onboarding() {
             <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
               <p className="text-xs text-amber-400/80 leading-relaxed">
                 <strong>Note:</strong> If your Pinterest app is in trial/sandbox mode, you may need to
-                request production access before pins can be published publicly. The connection will still
-                work for testing.
+                request production access before pins can be published publicly.
               </p>
             </div>
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-500">
+              <Button variant="ghost" onClick={() => setStep(3)} className="text-zinc-500">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Button onClick={() => setStep(3)} className="bg-zinc-800 text-zinc-200 border border-zinc-700">
+              <Button onClick={() => setStep(5)} className="bg-zinc-800 text-zinc-200 border border-zinc-700">
                 {settings.pinterest_connected ? "Next" : "Skip for now"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -367,18 +532,18 @@ export default function Onboarding() {
           </Card>
         )}
 
-        {/* Step 3: Configure */}
-        {step === 3 && (
+        {/* Step 5: Configure */}
+        {step === 5 && (
           <Card className="bg-zinc-900 border-zinc-800 p-6 space-y-5">
-            {showConfetti ? (
-              <div className="text-center space-y-4 py-6">
+            {showFinishConfetti ? (
+              <div className="text-center space-y-4 py-8">
                 <div className="flex justify-center">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/30 animate-bounce">
                     <PartyPopper className="h-8 w-8 text-white" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-zinc-100">Happy Birthday! 🎂</h2>
-                <p className="text-zinc-400 text-sm">Your AutoPin is all set up and ready to go!</p>
+                <h2 className="text-2xl font-bold text-zinc-100">You're all set, {userName}!</h2>
+                <p className="text-zinc-400 text-sm">Your AutoPin is ready. Taking you to the dashboard...</p>
               </div>
             ) : (
               <>
@@ -387,7 +552,7 @@ export default function Onboarding() {
                     <Sparkles className="h-5 w-5 text-purple-400" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-zinc-100">Configure Posting</h2>
+                    <h2 className="text-lg font-bold text-zinc-100">Almost done, {userName}!</h2>
                     <p className="text-xs text-zinc-500">Set your posting schedule</p>
                   </div>
                 </div>
@@ -441,7 +606,7 @@ export default function Onboarding() {
                 </div>
 
                 <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={() => setStep(2)} className="text-zinc-500">
+                  <Button variant="ghost" onClick={() => setStep(4)} className="text-zinc-500">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
