@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { Link, useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,137 @@ function AnimatedCounter({ value }: { value: number }) {
   return <>{display}</>;
 }
 
+import {
+  LayoutDashboard, Image, ListOrdered, Settings2, Sparkles, X,
+} from "lucide-react";
+
+const tutorialSteps = [
+  {
+    icon: LayoutDashboard,
+    title: "Dashboard",
+    desc: "This is your home base. See your stats, next scheduled pin, and posting schedule all in one place.",
+    color: "text-rose-400",
+    bg: "bg-rose-500/10 border-rose-500/20",
+  },
+  {
+    icon: Image,
+    title: "Review",
+    desc: "Photos from Google Drive land here. You can generate AI tags, pick a board, then approve or skip each one.",
+    color: "text-purple-400",
+    bg: "bg-purple-500/10 border-purple-500/20",
+  },
+  {
+    icon: ListOrdered,
+    title: "Queue",
+    desc: "Approved photos get scheduled here. Drag to reorder, pause the queue, or remove pins before they post.",
+    color: "text-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/20",
+  },
+  {
+    icon: Settings2,
+    title: "Settings",
+    desc: "Connect Google Drive and Pinterest, set your posting interval, and map boards to categories.",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  {
+    icon: Sparkles,
+    title: "You're ready!",
+    desc: "That's the whole app. Head to Settings to connect your accounts and start pinning automatically.",
+    color: "text-green-400",
+    bg: "bg-green-500/10 border-green-500/20",
+  },
+];
+
+function AppTutorial({ onDone }: { onDone: () => void }) {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (current >= tutorialSteps.length - 1) return;
+    const timer = setTimeout(() => setCurrent((c) => c + 1), 3500);
+    return () => clearTimeout(timer);
+  }, [current]);
+
+  const step = tutorialSteps[current];
+  const Icon = step.icon;
+  const isLast = current === tutorialSteps.length - 1;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onDone} />
+      <motion.div
+        className="relative w-full max-w-md"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      >
+        <Card className="glass border-zinc-800/60 p-6 space-y-5 shadow-2xl">
+          <button onClick={onDone} className="absolute top-4 right-4 text-zinc-600 hover:text-zinc-400 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+
+          {/* Step dots */}
+          <div className="flex justify-center gap-1.5">
+            {tutorialSteps.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  i === current ? "w-6 bg-rose-500" : i < current ? "w-1.5 bg-rose-500/40" : "w-1.5 bg-zinc-700"
+                }`}
+              />
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col items-center text-center space-y-4"
+            >
+              <div className={`w-14 h-14 rounded-2xl ${step.bg} border flex items-center justify-center`}>
+                <Icon className={`h-7 w-7 ${step.color}`} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-100">{step.title}</h2>
+                <p className="text-sm text-zinc-400 leading-relaxed max-w-xs mx-auto">{step.desc}</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Progress bar */}
+          <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-rose-500 to-pink-500"
+              animate={{ width: `${((current + 1) / tutorialSteps.length) * 100}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            />
+          </div>
+
+          {isLast && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <Button
+                onClick={onDone}
+                className="w-full bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30"
+              >
+                Let's go!
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </motion.div>
+          )}
+        </Card>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 const staggerContainer = {
   animate: { transition: { staggerChildren: 0.05 } },
 };
@@ -77,6 +208,13 @@ function getGreetingInfo(hour: number) {
 }
 
 export default function Dashboard() {
+  const [showTutorial, setShowTutorial] = useState(() => {
+    if (localStorage.getItem("show_tutorial") === "true") {
+      localStorage.removeItem("show_tutorial");
+      return true;
+    }
+    return false;
+  });
   const [syncing, setSyncing] = useState(false);
   const [stats, setStats] = useState<PhotoStats>({ new: 0, tagged: 0, approved: 0, scheduled: 0, posted: 0, skipped: 0 });
   const [settings, setSettings] = useState<Settings>({ drive_folder_id: null, posting_interval_hours: 24, default_post_time: "10:00", google_connected: false, pinterest_connected: false });
@@ -159,6 +297,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <AnimatePresence>
+        {showTutorial && <AppTutorial onDone={() => setShowTutorial(false)} />}
+      </AnimatePresence>
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

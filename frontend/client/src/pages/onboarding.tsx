@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,17 +9,13 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Zap, ArrowRight, ArrowLeft, ExternalLink, CheckCircle, XCircle, FolderOpen,
-  Loader2, Sparkles, PartyPopper, Clock, Crown, User, Cake,
+  ArrowRight, ArrowLeft, PartyPopper, Crown, User, Cake,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { toast } from "sonner";
-import { getSettings, updateSettings, getGoogleAuthUrl, getPinterestAuthUrl } from "@/lib/api";
-import type { Settings } from "@/lib/types";
 
-const STEPS = ["Welcome", "Your Name", "Birthday", "Google Drive", "Pinterest", "Configure"];
+const STEPS = ["Welcome", "Your Name", "Birthday"];
 
-function ConfettiCanvas({ key: canvasKey }: { key?: string }) {
+function ConfettiCanvas() {
   useEffect(() => {
     const canvas = document.getElementById("confetti-canvas") as HTMLCanvasElement;
     if (!canvas) return;
@@ -111,7 +107,6 @@ function ConfettiCanvas({ key: canvasKey }: { key?: string }) {
   return (
     <canvas
       id="confetti-canvas"
-      key={canvasKey}
       className="fixed inset-0 pointer-events-none z-50"
     />
   );
@@ -120,48 +115,12 @@ function ConfettiCanvas({ key: canvasKey }: { key?: string }) {
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(0);
-  const [settings, setSettings] = useState<Settings>({
-    drive_folder_id: null,
-    posting_interval_hours: 24,
-    default_post_time: "10:00",
-    google_connected: false,
-    pinterest_connected: false,
-  });
   const [userName, setUserName] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
   const [birthdayError, setBirthdayError] = useState("");
-  const [folderId, setFolderId] = useState("");
-  const [editInterval, setEditInterval] = useState("24");
-  const [editTime, setEditTime] = useState("10:00");
-  const [loading, setLoading] = useState(true);
-  const [savingFolder, setSavingFolder] = useState(false);
-  const [savingConfig, setSavingConfig] = useState(false);
   const [showWelcomeConfetti, setShowWelcomeConfetti] = useState(false);
   const [showBirthdayConfetti, setShowBirthdayConfetti] = useState(false);
-  const [showFinishConfetti, setShowFinishConfetti] = useState(false);
-
-  const refreshSettings = useCallback(async () => {
-    try {
-      const res = await getSettings();
-      setSettings(res.data);
-      if (res.data.drive_folder_id) setFolderId(res.data.drive_folder_id);
-      setEditInterval(String(res.data.posting_interval_hours));
-      setEditTime(res.data.default_post_time);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    refreshSettings().finally(() => setLoading(false));
-  }, [refreshSettings]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("google") === "connected" || params.get("pinterest") === "connected") {
-      refreshSettings();
-      window.history.replaceState({}, "", "/onboarding");
-    }
-  }, [refreshSettings]);
 
   // Trigger welcome confetti on mount
   useEffect(() => {
@@ -193,54 +152,18 @@ export default function Onboarding() {
     setShowBirthdayConfetti(true);
 
     setTimeout(() => {
-      setStep(3);
-      setShowBirthdayConfetti(false);
-    }, 3000);
-  }
-
-  async function handleSaveFolder() {
-    setSavingFolder(true);
-    try {
-      await updateSettings({ drive_folder_id: folderId });
-      setSettings((s) => ({ ...s, drive_folder_id: folderId }));
-      toast.success("Folder ID saved");
-    } catch {
-      toast.error("Failed to save folder ID");
-    } finally {
-      setSavingFolder(false);
-    }
-  }
-
-  async function handleFinish() {
-    setSavingConfig(true);
-    try {
-      await updateSettings({ posting_interval_hours: Number(editInterval), default_post_time: editTime });
-    } catch {}
-    setSavingConfig(false);
-
-    setShowFinishConfetti(true);
-    localStorage.setItem("onboarding_complete", "true");
-
-    setTimeout(() => {
+      localStorage.setItem("onboarding_complete", "true");
+      localStorage.setItem("show_tutorial", "true");
       setLocation("/");
     }, 4000);
   }
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-rose-400" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center p-4 gradient-shift-bg">
       {showWelcomeConfetti && step === 0 && <ConfettiCanvas key="welcome" />}
       {showBirthdayConfetti && <ConfettiCanvas key="birthday" />}
-      {showFinishConfetti && <ConfettiCanvas key="finish" />}
       <div className="w-full max-w-lg space-y-6">
         {/* Progress */}
         <div className="space-y-2">
@@ -254,7 +177,7 @@ export default function Onboarding() {
         </div>
 
         <AnimatePresence mode="wait">
-        {/* Step 0: Welcome — "Only user" celebration */}
+        {/* Step 0: Welcome */}
         {step === 0 && (
           <motion.div key="step-0" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
           <Card className="glass border-zinc-800/60 p-8 text-center space-y-6">
@@ -343,7 +266,7 @@ export default function Onboarding() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-zinc-100">Happy Birthday, {userName}!</h2>
-                <p className="text-zinc-400 text-sm">This app is your birthday present! Let's set it up.</p>
+                <p className="text-zinc-400 text-sm">Taking you to your dashboard...</p>
               </div>
             ) : (
               <>
@@ -395,9 +318,9 @@ export default function Onboarding() {
                 </div>
 
                 {birthdayError && (
-                  <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
                     <p className="text-xs text-red-400">{birthdayError}</p>
-                  </div>
+                  </motion.div>
                 )}
 
                 <div className="flex justify-between pt-2">
@@ -411,226 +334,6 @@ export default function Onboarding() {
                   >
                     Verify Me
                     <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              </>
-            )}
-          </Card>
-          </motion.div>
-        )}
-
-        {/* Step 3: Google Drive */}
-        {step === 3 && (
-          <motion.div key="step-3" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                <FolderOpen className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-zinc-100">Connect Google Drive</h2>
-                <p className="text-xs text-zinc-500">Your photo source for the pipeline</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-              <div className="flex items-center gap-2">
-                {settings.google_connected ? (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-red-400" />
-                )}
-                <span className={`text-sm font-medium ${settings.google_connected ? "text-green-400" : "text-red-400"}`}>
-                  {settings.google_connected ? "Connected" : "Not Connected"}
-                </span>
-              </div>
-              {!settings.google_connected && (
-                <Button asChild size="sm" className="bg-rose-500 text-white text-xs">
-                  <a href={getGoogleAuthUrl()}>
-                    <ExternalLink className="h-3 w-3 mr-1.5" />
-                    Connect
-                  </a>
-                </Button>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs text-zinc-500 uppercase tracking-wide font-medium">Drive Folder ID</label>
-              <p className="text-xs text-zinc-600">The ID from your Google Drive folder URL</p>
-              <div className="flex gap-2">
-                <Input
-                  value={folderId}
-                  onChange={(e) => setFolderId(e.target.value)}
-                  placeholder="e.g. 1aBcDeFgHiJkLmNoPqRsT"
-                  className="bg-zinc-800 border-zinc-700 text-zinc-200 text-sm"
-                />
-                <Button
-                  onClick={handleSaveFolder}
-                  disabled={savingFolder || !folderId}
-                  size="sm"
-                  className="bg-rose-500 text-white flex-shrink-0"
-                >
-                  {savingFolder ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(2)} className="text-zinc-500">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <Button onClick={() => setStep(4)} className="bg-zinc-800 text-zinc-200 border border-zinc-700">
-                {settings.google_connected ? "Next" : "Skip for now"}
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </Card>
-          </motion.div>
-        )}
-
-        {/* Step 4: Pinterest */}
-        {step === 4 && (
-          <motion.div key="step-4" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-                <span className="text-rose-400 text-lg font-bold">P</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-zinc-100">Connect Pinterest</h2>
-                <p className="text-xs text-zinc-500">Where your pins will be published</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-              <div className="flex items-center gap-2">
-                {settings.pinterest_connected ? (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-red-400" />
-                )}
-                <span className={`text-sm font-medium ${settings.pinterest_connected ? "text-green-400" : "text-red-400"}`}>
-                  {settings.pinterest_connected ? "Connected" : "Not Connected"}
-                </span>
-              </div>
-              {!settings.pinterest_connected && (
-                <Button asChild size="sm" className="bg-rose-500 text-white text-xs">
-                  <a href={getPinterestAuthUrl()}>
-                    <ExternalLink className="h-3 w-3 mr-1.5" />
-                    Connect
-                  </a>
-                </Button>
-              )}
-            </div>
-
-            <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
-              <p className="text-xs text-amber-400/80 leading-relaxed">
-                <strong>Note:</strong> If your Pinterest app is in trial/sandbox mode, you may need to
-                request production access before pins can be published publicly.
-              </p>
-            </div>
-
-            <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(3)} className="text-zinc-500">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <Button onClick={() => setStep(5)} className="bg-zinc-800 text-zinc-200 border border-zinc-700">
-                {settings.pinterest_connected ? "Next" : "Skip for now"}
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </Card>
-          </motion.div>
-        )}
-
-        {/* Step 5: Configure */}
-        {step === 5 && (
-          <motion.div key="step-5" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-          <Card className="glass border-zinc-800/60 p-6 space-y-5">
-            {showFinishConfetti ? (
-              <div className="text-center space-y-4 py-8">
-                <div className="flex justify-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/30 animate-bounce">
-                    <PartyPopper className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <h2 className="text-2xl font-bold text-zinc-100">You're all set, {userName}!</h2>
-                <p className="text-zinc-400 text-sm">Your AutoPin is ready. Taking you to the dashboard...</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-zinc-100">Almost done, {userName}!</h2>
-                    <p className="text-xs text-zinc-500">Set your posting schedule</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs text-zinc-500 uppercase tracking-wide font-medium">Posting Interval</label>
-                    <Select value={editInterval} onValueChange={setEditInterval}>
-                      <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700">
-                        <SelectItem value="12">Every 12 hours</SelectItem>
-                        <SelectItem value="24">Every 24 hours</SelectItem>
-                        <SelectItem value="48">Every 48 hours</SelectItem>
-                        <SelectItem value="72">Every 72 hours</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-zinc-500 uppercase tracking-wide font-medium">Default Post Time</label>
-                    <Input
-                      type="time"
-                      value={editTime}
-                      onChange={(e) => setEditTime(e.target.value)}
-                      className="bg-zinc-800 border-zinc-700 text-zinc-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 p-3 space-y-2">
-                  <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Setup Summary</p>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm">
-                      {settings.google_connected ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-zinc-600" />}
-                      <span className={settings.google_connected ? "text-zinc-300" : "text-zinc-600"}>Google Drive</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      {settings.drive_folder_id ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-zinc-600" />}
-                      <span className={settings.drive_folder_id ? "text-zinc-300" : "text-zinc-600"}>Folder ID</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      {settings.pinterest_connected ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-zinc-600" />}
-                      <span className={settings.pinterest_connected ? "text-zinc-300" : "text-zinc-600"}>Pinterest</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-3.5 w-3.5 text-purple-400" />
-                      <span className="text-zinc-300">Every {editInterval}h at {editTime}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={() => setStep(4)} className="text-zinc-500">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handleFinish}
-                    disabled={savingConfig}
-                    className="bg-rose-500 text-white shadow-lg shadow-rose-500/30 border border-rose-400/30 px-6"
-                  >
-                    {savingConfig ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PartyPopper className="h-4 w-4 mr-2" />}
-                    Finish Setup
                   </Button>
                 </div>
               </>
